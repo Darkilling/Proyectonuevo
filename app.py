@@ -85,14 +85,14 @@ class Aprobacion(db.Model):
 # Rutas
 @app.route('/api/documentos', methods=['GET'])
 def obtener_documentos():
-    tipo = request.args.get('tipo', 'todos')
+    tipo = request.args.get('tipo')
     estado = request.args.get('estado', 'pendiente')
     fecha_desde = request.args.get('fecha_desde')
     fecha_hasta = request.args.get('fecha_hasta')
 
     query = Documento.query
 
-    if tipo != 'todos':
+    if tipo and tipo != 'todos':
         query = query.filter(Documento.tipo == tipo)
     if estado:
         query = query.filter(Documento.estado == estado)

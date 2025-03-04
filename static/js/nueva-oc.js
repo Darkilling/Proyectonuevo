@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const ivaElement = document.getElementById('iva');
     const totalElement = document.getElementById('total');
     let itemCount = 0;
+    let spData = null; // Variable para almacenar los datos de la SP
 
     // Obtener ID de SP si existe
     const urlParams = new URLSearchParams(window.location.search);
@@ -25,24 +26,24 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!response.ok) {
                 throw new Error('Error al cargar la solicitud');
             }
-            const sp = await response.json();
+            spData = await response.json();
             
             // Mostrar información de la SP
             document.getElementById('spInfo').innerHTML = `
                 <div class="sp-info">
-                    <h3>Basado en Solicitud de Pedido: ${sp.numero}</h3>
-                    <p>Solicitante: ${sp.solicitante}</p>
-                    <p>Departamento: ${sp.departamento}</p>
-                    <p>Fecha solicitud: ${new Date(sp.fecha).toLocaleDateString('es-CL')}</p>
+                    <h3>Basado en Solicitud de Pedido: ${spData.numero}</h3>
+                    <p>Solicitante: ${spData.solicitante}</p>
+                    <p>Departamento: ${spData.departamento}</p>
+                    <p>Fecha solicitud: ${new Date(spData.fecha).toLocaleDateString('es-CL')}</p>
                 </div>
             `;
 
             // Establecer el número de SP en el campo correspondiente
-            document.getElementById('numeroSP').value = sp.numero;
+            document.getElementById('numeroSP').value = spData.numero;
 
             // Pre-cargar los items de la SP
             itemsContainer.innerHTML = '';
-            sp.items.forEach((item, index) => {
+            spData.items.forEach((item, index) => {
                 const itemRow = createItemRow(index);
                 itemsContainer.appendChild(itemRow);
                 
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     inputs[2].value = item.precio || ''; // precio si existe
                 }
             });
-            itemCount = sp.items.length;
+            itemCount = spData.items.length;
             
             // Actualizar totales
             calculateTotals();
@@ -201,6 +202,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             items: [],
             solicitud_id: spId
         };
+
+        // Si hay datos de SP, incluir el solicitante y departamento
+        if (spData) {
+            orden.solicitante = spData.solicitante;
+            orden.departamento = spData.departamento;
+        }
 
         // Recolectar los ítems
         const items = itemsContainer.querySelectorAll('.item-row');

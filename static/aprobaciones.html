@@ -88,7 +88,7 @@
     <script>
         // Verificar autenticación y permisos
         document.addEventListener('DOMContentLoaded', function() {
-            auth.checkPermissions(['aprobador']);
+            auth.checkPermissions(['aprobador', 'admin']);
             auth.updateUserInterface();
         });
     </script>

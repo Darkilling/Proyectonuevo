@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const togglePassword = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
 
-    // Usuarios del sistema
-    const usuarios = {
+    // Obtener usuarios del localStorage o usar el admin por defecto
+    let usuarios = JSON.parse(localStorage.getItem('users')) || {
         'admin': {
             password: 'admin123',
             type: 'admin',

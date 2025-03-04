@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function obtenerDocumentos(filtros = {}) {
         try {
             const params = new URLSearchParams(filtros);
-            const response = await fetch(`http://localhost:5000/api/documentos?${params}`);
+            const response = await fetch(`/api/documentos?${params}`);
             if (!response.ok) throw new Error('Error al obtener documentos');
             return await response.json();
         } catch (error) {
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para obtener un documento específico
     async function obtenerDocumento(id) {
         try {
-            const response = await fetch(`http://localhost:5000/api/documentos/${id}`);
+            const response = await fetch(`/api/documentos/${id}`);
             if (!response.ok) throw new Error('Error al obtener el documento');
             return await response.json();
         } catch (error) {
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para aprobar un documento
     async function aprobarDocumento(id, comentarios) {
         try {
-            const response = await fetch(`http://localhost:5000/api/documentos/${id}/aprobar`, {
+            const response = await fetch(`/api/documentos/${id}/aprobar`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para rechazar un documento
     async function rechazarDocumento(id, comentarios) {
         try {
-            const response = await fetch(`http://localhost:5000/api/documentos/${id}/rechazar`, {
+            const response = await fetch(`/api/documentos/${id}/rechazar`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -97,14 +97,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${doc.tipo === 'oc' ? `<p><strong>Total:</strong> ${formatCurrency(doc.total)}</p>` : ''}
                 <p><span class="document-status status-${doc.estado}">${capitalizeFirst(doc.estado)}</span></p>
             </div>
-            ${isAprobador && doc.estado === 'pendiente' ? 
-                '<div class="document-actions"><button class="btn btn-primary btn-sm">Revisar</button></div>' : 
-                ''}
+            <div class="document-actions">
+                <button class="btn btn-primary btn-sm">Revisar</button>
+            </div>
         `;
 
-        if (isAprobador || doc.estado !== 'pendiente') {
-            card.addEventListener('click', () => showDocumentDetails(doc.id));
-        }
+        // Agregar evento click para mostrar detalles
+        card.addEventListener('click', () => showDocumentDetails(doc.id));
         return card;
     }
 
@@ -283,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Mostrar/ocultar formulario de aprobación según el rol y estado
         const approvalForm = modal.querySelector('.approval-form');
-        if (isAprobador && doc.estado === 'pendiente') {
+        if ((userData.type === 'aprobador' || userData.type === 'admin') && doc.estado === 'pendiente') {
             approvalForm.style.display = 'block';
         } else {
             approvalForm.style.display = 'none';
@@ -317,7 +316,8 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.remove('active');
     });
 
-    if (isAprobador) {
+    // Verificar si el usuario tiene permisos de aprobación (aprobador o admin)
+    if (userData.type === 'aprobador' || userData.type === 'admin') {
         aprobarBtn.addEventListener('click', async () => {
             const comentarios = document.getElementById('comentarios').value;
             if (!comentarios.trim()) {
@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     aplicarFiltrosBtn.addEventListener('click', renderDocuments);
 
-    // Función para renderizar documentos según los filtros
+    // Función para renderizar los documentos
     async function renderDocuments() {
         const tipoFiltro = document.getElementById('tipoDocumento').value;
         const estadoFiltro = document.getElementById('estado').value;
@@ -365,19 +365,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const fechaHasta = document.getElementById('fechaHasta').value;
 
         const filtros = {
-            tipo: tipoFiltro === 'todos' ? null : tipoFiltro,
-            estado: estadoFiltro,
-            fecha_desde: fechaDesde,
-            fecha_hasta: fechaHasta
+            estado: estadoFiltro
         };
+
+        // Solo agregar el tipo si no es 'todos'
+        if (tipoFiltro !== 'todos') {
+            filtros.tipo = tipoFiltro;
+        }
+
+        // Agregar fechas si están definidas
+        if (fechaDesde) {
+            filtros.fecha_desde = fechaDesde;
+        }
+        if (fechaHasta) {
+            filtros.fecha_hasta = fechaHasta;
+        }
 
         const documentos = await obtenerDocumentos(filtros);
         documentList.innerHTML = '';
+
+        if (documentos.length === 0) {
+            documentList.innerHTML = '<p class="no-documents">No hay documentos que mostrar</p>';
+            return;
+        }
+
         documentos.forEach(doc => {
-            documentList.appendChild(createDocumentCard(doc));
+            const card = createDocumentCard(doc);
+            documentList.appendChild(card);
         });
     }
 
-    // Renderizar documentos iniciales
+    // Renderizar documentos al cargar la página
     renderDocuments();
 }); 
