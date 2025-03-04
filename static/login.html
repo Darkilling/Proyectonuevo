@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Sistema de Gestión</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Sistema de Gestión</h1>
+                <p>SP y OC</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" required>
+                        <button type="button" id="togglePassword" class="toggle-password">
+                            👁
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="userType">Tipo de Usuario</label>
+                    <select id="userType" name="userType" required>
+                        <option value="">Seleccione un tipo</option>
+                        <option value="admin">Administrador</option>
+                        <option value="operacion">Operación</option>
+                        <option value="compras">Compras</option>
+                        <option value="aprobador">Aprobador</option>
+                    </select>
+                </div>
+
+                <div id="error-message" class="error-message"></div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    Iniciar Sesión
+                </button>
+            </form>
+        </div>
+    </div>
+    <script src="js/login.js"></script>
+</body>
+</html> 

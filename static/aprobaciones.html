@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprobaciones - Sistema de Gestión</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/aprobaciones.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Aprobaciones Pendientes</h1>
+            <a href="index.html" class="btn btn-link">← Volver al inicio</a>
+            <div class="user-info">
+                <span id="userName"></span>
+                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="tipoDocumento">Tipo de documento:</label>
+                <select id="tipoDocumento">
+                    <option value="todos">Todos</option>
+                    <option value="sp">Solicitudes de Pedido</option>
+                    <option value="oc">Órdenes de Compra</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="estado">Estado:</label>
+                <select id="estado">
+                    <option value="pendiente">Pendiente</option>
+                    <option value="aprobado">Aprobado</option>
+                    <option value="rechazado">Rechazado</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="fechaDesde">Desde:</label>
+                <input type="date" id="fechaDesde">
+            </div>
+            <div class="filter-group">
+                <label for="fechaHasta">Hasta:</label>
+                <input type="date" id="fechaHasta">
+            </div>
+            <button class="btn btn-primary" id="aplicarFiltros">Aplicar Filtros</button>
+        </div>
+
+        <div class="documents-container">
+            <div class="document-list">
+                <!-- Las tarjetas de documentos se generarán dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Modal de Aprobación -->
+        <div class="modal" id="approvalModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Revisar Documento</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="document-details">
+                        <!-- Los detalles del documento se cargarán dinámicamente -->
+                    </div>
+                    <div class="approval-form" data-role="aprobador">
+                        <div class="form-group">
+                            <label for="comentarios">Comentarios:</label>
+                            <textarea id="comentarios" rows="4"></textarea>
+                        </div>
+                        <div class="approval-actions">
+                            <button class="btn btn-success" id="aprobar">Aprobar</button>
+                            <button class="btn btn-danger" id="rechazar">Rechazar</button>
+                            <button class="btn btn-secondary" id="cancelar">Cancelar</button>
+                            <button class="btn btn-primary" id="exportarPDF">
+                                <i class="fas fa-file-pdf"></i> Exportar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/aprobaciones.js"></script>
+    <script>
+        // Verificar autenticación y permisos
+        document.addEventListener('DOMContentLoaded', function() {
+            auth.checkPermissions(['aprobador']);
+            auth.updateUserInterface();
+        });
+    </script>
+</body>
+</html> 

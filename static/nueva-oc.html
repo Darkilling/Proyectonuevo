@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Orden de Compra - Sistema de Gestión</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/forms.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nueva Orden de Compra</h1>
+            <a href="index.html" class="btn btn-link">← Volver al inicio</a>
+        </header>
+
+        <div class="form-container">
+            <!-- Sección para mostrar información de la SP -->
+            <div id="spInfo" class="sp-reference"></div>
+
+            <form id="ocForm" class="main-form">
+                <div class="form-group">
+                    <label for="numeroSP">Número de SP:</label>
+                    <input type="text" id="numeroSP" name="numeroSP" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="proveedor">Proveedor:</label>
+                    <input type="text" id="proveedor" name="proveedor" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="rut">RUT Proveedor:</label>
+                    <input type="text" id="rut" name="rut" required pattern="\d{1,2}\.\d{3}\.\d{3}[-][0-9kK]{1}" placeholder="12.345.678-9">
+                </div>
+
+                <div class="form-group">
+                    <label for="fechaEmision">Fecha de emisión:</label>
+                    <input type="date" id="fechaEmision" name="fechaEmision" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicionPago">Condición de pago:</label>
+                    <select id="condicionPago" name="condicionPago" required>
+                        <option value="contado">Contado</option>
+                        <option value="30dias">30 días</option>
+                        <option value="60dias">60 días</option>
+                        <option value="90dias">90 días</option>
+                    </select>
+                </div>
+
+                <div class="items-section">
+                    <h3>Ítems de la orden</h3>
+                    <div id="items-container">
+                        <!-- Los ítems se agregarán dinámicamente -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addItem">+ Agregar ítem</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="observaciones">Observaciones:</label>
+                    <textarea id="observaciones" name="observaciones" rows="4"></textarea>
+                </div>
+
+                <div class="totales-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>IVA (19%):</span>
+                        <span id="iva">$0.00</span>
+                    </div>
+                    <div class="total-row total-final">
+                        <span>Total:</span>
+                        <span id="total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Crear Orden de Compra</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/nueva-oc.js"></script>
+</body>
+</html> 

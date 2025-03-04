@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Sistema SP/OC</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/usuarios.css">
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="user-info">
+                <span id="userName"></span>
+                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
+            </div>
+            <h1>Gestión de Usuarios</h1>
+            <a href="index.html" class="btn btn-secondary">Volver al Inicio</a>
+        </header>
+
+        <div class="users-section">
+            <div class="users-header">
+                <h2>Usuarios del Sistema</h2>
+                <button class="btn btn-primary" id="addUserBtn">Agregar Usuario</button>
+            </div>
+
+            <div class="users-list" id="usersList">
+                <!-- Los usuarios se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Modal para agregar/editar usuario -->
+        <div id="userModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle">Agregar Usuario</h2>
+                <form id="userForm">
+                    <div class="form-group">
+                        <label for="username">Usuario:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Nombre Completo:</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Contraseña:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userType">Tipo de Usuario:</label>
+                        <select id="userType" name="userType" required>
+                            <option value="">Seleccione un tipo...</option>
+                            <option value="operacion">Operación</option>
+                            <option value="compras">Compras</option>
+                            <option value="aprobador">Aprobador</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/usuarios.js"></script>
+    <script>
+        // Verificar que solo el administrador pueda acceder
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!auth.checkPermissions(['admin'])) {
+                window.location.href = 'index.html';
+            }
+            auth.updateUserInterface();
+        });
+    </script>
+</body>
+</html> 

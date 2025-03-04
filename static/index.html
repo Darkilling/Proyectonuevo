@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de SP y OC</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="user-info">
+                <span id="userName"></span>
+                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
+            </div>
+            <h1>Sistema de Gestión de SP y OC</h1>
+            <p class="subtitle">Gestión de Solicitudes de Pedido y Órdenes de Compra</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Buscar OC o SP..." class="search-input">
+                <button class="btn btn-primary" id="searchButton">Buscar</button>
+            </div>
+        </div>
+
+        <!-- Sección de SP pendientes para usuarios de compras -->
+        <div id="pendientesSPSection" class="pending-sp-section" style="display: none;">
+            <h2>Solicitudes de Pedido Pendientes</h2>
+            <div id="pendientesSP" class="documents-list">
+                <!-- Las SP pendientes se cargarán aquí -->
+            </div>
+        </div>
+
+        <div class="actions-grid">
+            <div class="action-card" data-role="admin,operacion">
+                <div class="action-icon">📝</div>
+                <h3>Nueva Solicitud de Pedido</h3>
+                <p>Crear una nueva solicitud de pedido para su departamento</p>
+                <a href="nueva-sp.html" class="btn btn-primary">Crear SP</a>
+            </div>
+
+            <div class="action-card" data-role="admin,compras">
+                <div class="action-icon">📋</div>
+                <h3>Nueva Orden de Compra</h3>
+                <p>Generar una nueva orden de compra para proveedores</p>
+                <a href="nueva-oc.html" class="btn btn-primary">Crear OC</a>
+            </div>
+
+            <div class="action-card" data-role="admin,aprobador">
+                <div class="action-icon">✓</div>
+                <h3>Aprobaciones Pendientes</h3>
+                <p>Revisar y aprobar documentos pendientes</p>
+                <a href="aprobaciones.html" class="btn btn-primary">Ver Pendientes</a>
+            </div>
+
+            <div class="action-card" data-role="admin,compras,aprobador">
+                <div class="action-icon">📊</div>
+                <h3>Reportes</h3>
+                <p>Ver estadísticas y generar reportes</p>
+                <button class="btn btn-primary" onclick="alert('Módulo en desarrollo')">Ver Reportes</button>
+            </div>
+
+            <div class="action-card" data-role="admin">
+                <div class="action-icon">👥</div>
+                <h3>Gestión de Usuarios</h3>
+                <p>Administrar usuarios del sistema</p>
+                <a href="usuarios.html" class="btn btn-primary">Gestionar Usuarios</a>
+            </div>
+        </div>
+
+        <div class="recent-documents">
+            <h2>Documentos Recientes</h2>
+            <div class="documents-list" id="recentDocuments">
+                <!-- Los documentos recientes se cargarán dinámicamente -->
+            </div>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/index.js"></script>
+    <script>
+        // Verificar autenticación y actualizar interfaz
+        document.addEventListener('DOMContentLoaded', function() {
+            auth.checkAuth();
+            auth.updateUserInterface();
+        });
+    </script>
+</body>
+</html> 

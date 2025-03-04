@@ -1,0 +1,134 @@
+/* Contenedor principal */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color), #1565c0);
+    padding: 20px;
+}
+
+/* Tarjeta de login */
+.login-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Encabezado */
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h1 {
+    color: var(--text-color);
+    margin: 0;
+    font-size: 24px;
+}
+
+.login-header p {
+    color: #666;
+    margin: 10px 0 0;
+    font-size: 16px;
+}
+
+/* Formulario */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Campo de contraseña */
+.password-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #666;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* Mensaje de error */
+.error-message {
+    color: #dc3545;
+    font-size: 14px;
+    text-align: center;
+    min-height: 20px;
+    margin-top: -10px;
+}
+
+/* Botón de inicio de sesión */
+.btn-block {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 20px;
+    }
+
+    .login-header h1 {
+        font-size: 20px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .btn-block {
+        padding: 10px;
+        font-size: 14px;
+    }
+} 
