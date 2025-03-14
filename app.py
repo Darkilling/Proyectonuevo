@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 import logging
+from functools import wraps
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +14,13 @@ logger = logging.getLogger(__name__)
 # Cargar variables de entorno
 load_dotenv()
 
-app = Flask(__name__)
+# Obtener la ruta absoluta del directorio actual
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+app = Flask(__name__, 
+    static_folder='static',
+    static_url_path='',
+    root_path=basedir)
 CORS(app)
 
 # Configuración de la base de datos PostgreSQL
@@ -22,23 +29,12 @@ DB_PORT = os.getenv('DB_PORT', '5432')
 DB_NAME = os.getenv('DB_NAME', 'sistema_sp_oc')
 DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASSWORD = os.getenv('DB_PASSWORD', '88924606')
-
-# Construir la URL de conexión con parámetros adicionales
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?client_encoding=utf8"
-
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'supersecretkey')
 
-# Verificar conexión a la base de datos
-def test_db_connection():
-    try:
-        db.session.execute(db.text('SELECT 1'))
-        logger.info('Conexión a la base de datos exitosa')
-        return True
-    except Exception as e:
-        logger.error(f'Error al conectar a la base de datos: {str(e)}')
-        return False
+# Inicializar SQLAlchemy
+db = SQLAlchemy(app)
 
 # Modelos
 class Documento(db.Model):
@@ -53,14 +49,12 @@ class Documento(db.Model):
     rut = db.Column(db.String(20))
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     estado = db.Column(db.String(20), nullable=False, default='pendiente')
-    total = db.Column(db.Numeric(12, 2))  # Cambiado a Numeric para mejor precisión
+    total = db.Column(db.Numeric(12, 2))
     items = db.relationship('Item', backref='documento', lazy=True, cascade='all, delete-orphan')
     aprobaciones = db.relationship('Aprobacion', backref='documento', lazy=True, cascade='all, delete-orphan')
     
-    # Agregar relación entre SP y OC
     solicitud_id = db.Column(db.Integer, db.ForeignKey('documentos.id'))
-    orden_compra = db.relationship('Documento', backref=db.backref('solicitud_pedido', uselist=False),
-                                 remote_side=[id])
+    orden_compra = db.relationship('Documento', backref=db.backref('solicitud_pedido', uselist=False), remote_side=[id])
 
 class Item(db.Model):
     __tablename__ = 'items'
@@ -70,7 +64,7 @@ class Item(db.Model):
     descripcion = db.Column(db.String(200), nullable=False)
     cantidad = db.Column(db.Integer, nullable=False)
     unidad = db.Column(db.String(50))
-    precio = db.Column(db.Numeric(12, 2))  # Cambiado a Numeric para mejor precisión
+    precio = db.Column(db.Numeric(12, 2))
 
 class Aprobacion(db.Model):
     __tablename__ = 'aprobaciones'
@@ -82,188 +76,204 @@ class Aprobacion(db.Model):
     accion = db.Column(db.String(20), nullable=False)  # 'aprobado' o 'rechazado'
     comentarios = db.Column(db.Text)
 
-# Rutas
-@app.route('/api/documentos', methods=['GET'])
-def obtener_documentos():
-    tipo = request.args.get('tipo')
-    estado = request.args.get('estado', 'pendiente')
-    fecha_desde = request.args.get('fecha_desde')
-    fecha_hasta = request.args.get('fecha_hasta')
+# Middleware de autenticación
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario' not in session:
+            return jsonify({'error': 'Acceso no autorizado'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
-    query = Documento.query
-
-    if tipo and tipo != 'todos':
-        query = query.filter(Documento.tipo == tipo)
-    if estado:
-        query = query.filter(Documento.estado == estado)
-    if fecha_desde:
-        query = query.filter(Documento.fecha >= datetime.strptime(fecha_desde, '%Y-%m-%d'))
-    if fecha_hasta:
-        query = query.filter(Documento.fecha <= datetime.strptime(fecha_hasta, '%Y-%m-%d'))
-
-    documentos = query.all()
-    return jsonify([{
-        'id': doc.id,
-        'tipo': doc.tipo,
-        'numero': doc.numero,
-        'solicitante': doc.solicitante,
-        'departamento': doc.departamento,
-        'proveedor': doc.proveedor,
-        'rut': doc.rut,
-        'fecha': doc.fecha.strftime('%Y-%m-%d'),
-        'estado': doc.estado,
-        'total': float(doc.total) if doc.total else None,
-        'items': [{
-            'descripcion': item.descripcion,
-            'cantidad': item.cantidad,
-            'unidad': item.unidad,
-            'precio': float(item.precio) if item.precio else None
-        } for item in doc.items]
-    } for doc in documentos])
-
-@app.route('/api/documentos/<int:id>/aprobar', methods=['POST'])
-def aprobar_documento(id):
+# Rutas de autenticación
+@app.route('/login', methods=['POST'])
+def login():
     data = request.get_json()
-    documento = Documento.query.get_or_404(id)
+    usuario = data.get('usuario')
+    password = data.get('password')
     
-    if documento.estado != 'pendiente':
-        return jsonify({'error': 'El documento no está pendiente de aprobación'}), 400
+    if usuario == 'admin' and password == 'admin123':
+        session['usuario'] = usuario
+        return jsonify({'mensaje': 'Inicio de sesión exitoso'})
+    return jsonify({'error': 'Credenciales inválidas'}), 401
 
-    aprobacion = Aprobacion(
-        documento_id=id,
-        usuario=data['usuario'],
-        accion='aprobado',
-        comentarios=data['comentarios']
-    )
-    documento.estado = 'aprobado'
-    
-    db.session.add(aprobacion)
-    db.session.commit()
-    
-    return jsonify({'mensaje': 'Documento aprobado exitosamente'})
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('usuario', None)
+    return jsonify({'mensaje': 'Sesión cerrada exitosamente'})
 
-@app.route('/api/documentos/<int:id>/rechazar', methods=['POST'])
-def rechazar_documento(id):
-    data = request.get_json()
-    documento = Documento.query.get_or_404(id)
-    
-    if documento.estado != 'pendiente':
-        return jsonify({'error': 'El documento no está pendiente de aprobación'}), 400
+# Ruta protegida de prueba
+@app.route('/api/protegido', methods=['GET'])
+@login_required
+def ruta_protegida():
+    return jsonify({'mensaje': 'Acceso permitido'})
 
-    aprobacion = Aprobacion(
-        documento_id=id,
-        usuario=data['usuario'],
-        accion='rechazado',
-        comentarios=data['comentarios']
-    )
-    documento.estado = 'rechazado'
-    
-    db.session.add(aprobacion)
-    db.session.commit()
-    
-    return jsonify({'mensaje': 'Documento rechazado exitosamente'})
+# Ruta para servir la página de login
+@app.route('/')
+@app.route('/login')
+def serve_login():
+    return send_from_directory('static', 'login.html')
 
-@app.route('/api/documentos/<int:id>', methods=['GET'])
-def obtener_documento(id):
-    documento = Documento.query.get_or_404(id)
-    return jsonify({
-        'id': documento.id,
-        'tipo': documento.tipo,
-        'numero': documento.numero,
-        'solicitante': documento.solicitante,
-        'departamento': documento.departamento,
-        'proveedor': documento.proveedor,
-        'rut': documento.rut,
-        'fecha': documento.fecha.strftime('%Y-%m-%d'),
-        'estado': documento.estado,
-        'total': float(documento.total) if documento.total else None,
-        'items': [{
-            'descripcion': item.descripcion,
-            'cantidad': item.cantidad,
-            'unidad': item.unidad,
-            'precio': float(item.precio) if item.precio else None
-        } for item in documento.items],
-        'aprobaciones': [{
-            'usuario': apr.usuario,
-            'fecha': apr.fecha.strftime('%Y-%m-%d %H:%M:%S'),
-            'accion': apr.accion,
-            'comentarios': apr.comentarios
-        } for apr in documento.aprobaciones]
-    })
+# Ruta para servir la página principal (index)
+@app.route('/index')
+def serve_index():
+    return send_from_directory('static', 'index.html')
 
+# Ruta para obtener todos los documentos
 @app.route('/api/documentos/todos', methods=['GET'])
 def obtener_todos_documentos():
-    documentos = Documento.query.all()
-    return jsonify([{
-        'id': doc.id,
-        'tipo': doc.tipo,
-        'numero': doc.numero,
-        'solicitante': doc.solicitante,
-        'departamento': doc.departamento,
-        'proveedor': doc.proveedor,
-        'rut': doc.rut,
-        'fecha': doc.fecha.strftime('%Y-%m-%d'),
-        'estado': doc.estado,
-        'total': float(doc.total) if doc.total else None,
-        'items': [{
-            'id': item.id,
-            'descripcion': item.descripcion,
-            'cantidad': item.cantidad,
-            'unidad': item.unidad,
-            'precio': float(item.precio) if item.precio else None
-        } for item in doc.items]
-    } for doc in documentos])
+    try:
+        documentos = Documento.query.all()
+        return jsonify([{
+            'id': doc.id,
+            'tipo': doc.tipo,
+            'numero': doc.numero,
+            'solicitante': doc.solicitante,
+            'departamento': doc.departamento,
+            'proveedor': doc.proveedor,
+            'rut': doc.rut,
+            'fecha': doc.fecha.strftime('%Y-%m-%d'),
+            'estado': doc.estado,
+            'total': float(doc.total) if doc.total else None,
+            'items': [{
+                'id': item.id,
+                'descripcion': item.descripcion,
+                'cantidad': item.cantidad,
+                'unidad': item.unidad,
+                'precio': float(item.precio) if item.precio else None
+            } for item in doc.items]
+        } for doc in documentos]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+# Ruta para obtener todas las órdenes de compra
+@app.route('/api/ordenes-compra', methods=['GET'])
+def obtener_ordenes_compra():
+    try:
+        ordenes = Documento.query.filter_by(tipo='oc').all()
+        return jsonify([{
+            'id': orden.id,
+            'tipo': orden.tipo,
+            'numero': orden.numero,
+            'solicitante': orden.solicitante,
+            'departamento': orden.departamento,
+            'proveedor': orden.proveedor,
+            'rut': orden.rut,
+            'fecha': orden.fecha.strftime('%Y-%m-%d'),
+            'estado': orden.estado,
+            'total': float(orden.total) if orden.total else None,
+            'items': [{
+                'id': item.id,
+                'descripcion': item.descripcion,
+                'cantidad': item.cantidad,
+                'unidad': item.unidad,
+                'precio': float(item.precio) if item.precio else None
+            } for item in orden.items]
+        } for orden in ordenes]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Ruta para obtener un documento específico por su ID
+@app.route('/api/documentos/<int:doc_id>', methods=['GET'])
+def obtener_documento(doc_id):
+    try:
+        documento = Documento.query.get_or_404(doc_id)
+        return jsonify({
+            'id': documento.id,
+            'tipo': documento.tipo,
+            'numero': documento.numero,
+            'solicitante': documento.solicitante,
+            'departamento': documento.departamento,
+            'proveedor': documento.proveedor,
+            'rut': documento.rut,
+            'fecha': documento.fecha.strftime('%Y-%m-%d'),
+            'estado': documento.estado,
+            'total': float(documento.total) if documento.total else None,
+            'items': [{
+                'id': item.id,
+                'descripcion': item.descripcion,
+                'cantidad': item.cantidad,
+                'unidad': item.unidad,
+                'precio': float(item.precio) if item.precio else None
+            } for item in documento.items]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+# Ruta para obtener documentos filtrados por tipo
+@app.route('/api/documentos', methods=['GET'])
+def obtener_documentos_por_tipo():
+    tipo = request.args.get('tipo')
+    try:
+        documentos = Documento.query.filter_by(tipo=tipo).all()
+        return jsonify([{
+            'id': doc.id,
+            'tipo': doc.tipo,
+            'numero': doc.numero,
+            'solicitante': doc.solicitante,
+            'departamento': doc.departamento,
+            'proveedor': doc.proveedor,
+            'rut': doc.rut,
+            'fecha': doc.fecha.strftime('%Y-%m-%d'),
+            'estado': doc.estado,
+            'total': float(doc.total) if doc.total else None,
+            'items': [{
+                'id': item.id,
+                'descripcion': item.descripcion,
+                'cantidad': item.cantidad,
+                'unidad': item.unidad,
+                'precio': float(item.precio) if item.precio else None
+            } for item in doc.items]
+        } for doc in documentos]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Ruta para crear un nuevo documento
 @app.route('/api/documentos', methods=['POST'])
 def crear_documento():
     data = request.get_json()
-    
-    # Crear el nuevo documento
-    documento = Documento(
-        tipo=data['tipo'],
-        numero=data['numero'],
-        solicitante=data['solicitante'],
-        departamento=data['departamento'],
-        fecha=datetime.strptime(data['fecha'], '%Y-%m-%d'),
-        estado=data['estado'],
-        proveedor=data.get('proveedor'),
-        rut=data.get('rut'),
-        total=data.get('total')
-    )
-    
-    # Si es una OC y tiene solicitud_id, establecer la relación
-    if data['tipo'] == 'oc' and data.get('solicitud_id'):
-        solicitud = Documento.query.get(data['solicitud_id'])
-        if solicitud and solicitud.tipo == 'sp':
-            documento.solicitud_id = solicitud.id
-            # Actualizar el estado de la SP a 'procesada'
-            solicitud.estado = 'procesada'
-    
-    # Crear los items
-    for item_data in data['items']:
-        item = Item(
-            descripcion=item_data['descripcion'],
-            cantidad=item_data['cantidad'],
-            unidad=item_data.get('unidad'),
-            precio=item_data.get('precio')
-        )
-        documento.items.append(item)
-    
     try:
-        db.session.add(documento)
+        # Crear el documento principal
+        nuevo_documento = Documento(
+            tipo=data['tipo'],
+            numero=data['numero'],
+            solicitante=data.get('solicitante'),
+            departamento=data.get('departamento'),
+            proveedor=data['proveedor'],
+            rut=data['rut'],
+            fecha=datetime.strptime(data['fecha'], '%Y-%m-%d'),
+            estado=data['estado'],
+            total=data['total'],
+            solicitud_id=data.get('solicitud_id')
+        )
+        
+        # Agregar el documento a la sesión
+        db.session.add(nuevo_documento)
+        db.session.flush()  # Para obtener el ID del documento
+        
+        # Crear los ítems asociados al documento
+        if 'items' in data and isinstance(data['items'], list):
+            for item_data in data['items']:
+                nuevo_item = Item(
+                    documento_id=nuevo_documento.id,
+                    descripcion=item_data['descripcion'],
+                    cantidad=item_data['cantidad'],
+                    unidad=item_data.get('unidad'),
+                    precio=item_data['precio']
+                )
+                db.session.add(nuevo_item)
+        
+        # Confirmar la transacción
         db.session.commit()
+        
         return jsonify({
             'mensaje': 'Documento creado exitosamente',
-            'id': documento.id
+            'id': nuevo_documento.id,
+            'numero': nuevo_documento.numero
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
-
-# Ruta principal para servir el archivo index.html
-@app.route('/')
-def index():
-    return send_from_directory('static', 'index.html')
+        return jsonify({'error': str(e)}), 500
 
 # Ruta para servir archivos estáticos
 @app.route('/<path:path>')
@@ -272,10 +282,9 @@ def serve_static(path):
 
 if __name__ == '__main__':
     with app.app_context():
-        if test_db_connection():
-            try:
-                db.create_all()
-                logger.info('Tablas creadas exitosamente')
-            except Exception as e:
-                logger.error(f'Error al crear las tablas: {str(e)}')
-        app.run(debug=True) 
+        try:
+            db.create_all()
+            logger.info('Tablas creadas exitosamente')
+        except Exception as e:
+            logger.error(f'Error al crear las tablas: {str(e)}')
+        app.run(debug=True)

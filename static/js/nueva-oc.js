@@ -170,11 +170,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     // Event Listeners
-    addItemButton.addEventListener('click', () => {
-        const newItem = createItemRow(itemCount++);
-        itemsContainer.appendChild(newItem);
-        calculateTotals();
-    });
+    if (addItemButton) {
+        addItemButton.addEventListener('click', () => {
+            const newItem = createItemRow(itemCount++);
+            itemsContainer.appendChild(newItem);
+            calculateTotals();
+        });
+    } else {
+        console.error('El elemento addItem no existe en el DOM');
+    }
 
     // Agregar el primer ítem automáticamente
     addItemButton.click();

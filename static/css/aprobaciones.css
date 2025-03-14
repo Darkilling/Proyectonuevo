@@ -10,40 +10,60 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    position: relative;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 8px;
+    color: var(--text-color);
 }
 
-.user-info {
-    position: absolute;
-    top: 0;
-    right: 0;
+.logo-container {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
+.logo-container img {
+    height: 50px;
+    width: auto;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2em;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info span {
+    font-weight: 500;
+}
+
 /* Sección de filtros */
 .filters-section {
-    background: white;
+    background-color: var(--card-background);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 30px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    align-items: end;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: inline-block;
+    margin-right: 20px;
+    margin-bottom: 15px;
 }
 
 .filter-group label {
-    font-weight: 500;
+    display: block;
+    margin-bottom: 5px;
     color: var(--text-color);
+    font-weight: 500;
 }
 
 .filter-group select,
@@ -51,77 +71,63 @@ header {
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 14px;
+    min-width: 150px;
+    color: var(--text-color);
+    background-color: var(--card-background);
 }
 
 /* Lista de documentos */
 .documents-container {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.document-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 20px;
 }
 
 .document-card {
-    background: white;
-    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
     border-radius: 8px;
     padding: 20px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    cursor: pointer;
-    position: relative;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    transition: transform 0.2s ease;
+    color: var(--text-color);
 }
 
 .document-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .document-card h3 {
-    margin: 0 0 15px 0;
-    color: var(--primary-color);
+    color: var(--text-color);
+    margin-top: 0;
+    margin-bottom: 15px;
 }
 
 .document-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    margin-bottom: 15px;
 }
 
 .document-info p {
-    margin: 0;
+    color: var(--text-color);
+    margin: 5px 0;
 }
 
-.document-status {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    font-weight: 500;
+.document-info strong {
+    color: var(--primary-color);
 }
 
-.status-pendiente {
-    background-color: #fff3cd;
-    color: #856404;
+.document-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
-.status-aprobado {
-    background-color: #d4edda;
-    color: #155724;
+.document-actions button {
+    color: #ffffff;
 }
 
-.status-rechazado {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-/* Modal */
+/* Modal de aprobación */
 .modal {
     display: none;
     position: fixed;
@@ -129,23 +135,25 @@ header {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: 1000;
 }
 
 .modal.active {
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
 }
 
 .modal-content {
-    background: white;
+    background-color: var(--card-background);
     border-radius: 8px;
     width: 90%;
     max-width: 800px;
     max-height: 90vh;
     overflow-y: auto;
+    position: relative;
+    color: var(--text-color);
 }
 
 .modal-header {
@@ -166,97 +174,163 @@ header {
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #666;
+    color: var(--text-color);
 }
 
 .modal-body {
     padding: 20px;
 }
 
-/* Detalles del documento */
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+.document-details {
     margin-bottom: 20px;
 }
 
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.details-grid p {
+    color: var(--text-color);
+}
+
 .items-table {
-    margin-top: 20px;
+    margin: 20px 0;
 }
 
 .items-table table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.items-table th,
-.items-table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
 }
 
 .items-table th {
-    background-color: #f8f9fa;
-    font-weight: 500;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    padding: 12px;
+    text-align: left;
+}
+
+.items-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.items-table tr:hover {
+    background-color: rgba(27, 94, 32, 0.05);
 }
 
 /* Formulario de aprobación */
 .approval-form {
-    margin-top: 30px;
+    margin-top: 20px;
     padding-top: 20px;
     border-top: 1px solid var(--border-color);
 }
 
-.approval-form[data-role="aprobador"] {
-    display: none;
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    min-height: 100px;
+    resize: vertical;
+    color: var(--text-color);
+    background-color: var(--card-background);
 }
 
 .approval-actions {
     display: flex;
+    justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
 }
 
-/* Botones de acción en las tarjetas */
-.document-actions {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+.approval-actions button {
+    color: #ffffff;
 }
 
-.btn-sm {
+/* Estados de documentos */
+.document-status {
+    display: inline-block;
     padding: 4px 8px;
+    border-radius: 12px;
     font-size: 0.9em;
+    font-weight: 500;
+    color: var(--text-color);
 }
 
-/* Botón exportar PDF */
-#exportarPDF {
-    background-color: #4a5568;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.status-pendiente {
+    background-color: #fff3e0;
+    color: #f57c00;
 }
 
-#exportarPDF:hover {
-    background-color: #2d3748;
+.status-aprobado {
+    background-color: #e8f5e9;
+    color: var(--success-color);
 }
 
-#exportarPDF i {
-    font-size: 16px;
+.status-rechazado {
+    background-color: #ffebee;
+    color: var(--danger-color);
+}
+
+/* Sección de aprobaciones */
+.aprobaciones-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.aprobaciones-list {
+    margin-top: 15px;
+}
+
+.aprobacion-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.aprobacion-item p {
+    margin: 5px 0;
+    color: var(--text-color);
+}
+
+.aprobacion-item strong {
+    color: var(--primary-color);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .filters-section {
-        grid-template-columns: 1fr;
+    header {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
     }
 
-    .document-list {
-        grid-template-columns: 1fr;
+    .filter-group {
+        display: block;
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
     }
 
     .modal-content {
@@ -271,4 +345,9 @@ header {
     .approval-actions button {
         width: 100%;
     }
+}
+
+/* Asegurar que los botones en el modal mantengan el texto blanco */
+.modal-content .btn {
+    color: #ffffff;
 } 

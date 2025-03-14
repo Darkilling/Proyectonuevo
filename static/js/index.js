@@ -1,7 +1,57 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar autenticación usando auth.js
-    const user = auth.checkAuth();
-    if (!user) return;
+    // Verificar autenticación
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    if (!userData.username) {
+        window.location.href = '/login';
+        return;
+    }
+
+    // Mostrar nombre de usuario
+    document.getElementById('userName').textContent = userData.username;
+
+    // Obtener el rol del usuario (normalizamos el tipo/rol a 'comprador')
+    const userRole = (userData.role || userData.type || '').toLowerCase();
+    
+    // Mostrar secciones según el rol
+    document.querySelectorAll('[data-role]').forEach(element => {
+        const roleAttr = element.dataset.role.toLowerCase();
+        // Permitir acceso si el rol coincide o si es 'compras' para 'comprador'
+        if (roleAttr === userRole || (roleAttr === 'compras' && userRole === 'comprador')) {
+            element.style.display = 'grid';
+        }
+    });
+
+    // Si el usuario es comprador o tiene rol de compras, cargar datos específicos
+    if (userRole === 'comprador' || userRole === 'compras') {
+        cargarSolicitudesPendientes();
+        cargarUltimasOC();
+    }
+
+    // Agregar manejadores de eventos para los botones de navegación
+    document.querySelectorAll('button[data-href]').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const pagina = button.getAttribute('data-href');
+            window.location.href = pagina;
+        });
+    });
+
+    // Agregar manejadores de eventos para los enlaces del sidebar
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            
+            // Si es cerrar sesión, manejar de forma especial
+            if (href === '/logout') {
+                sessionStorage.removeItem('userData');
+                window.location.href = '/login';
+                return;
+            }
+            
+            window.location.href = href;
+        });
+    });
 
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -73,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             documentos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
             
             // Si es usuario de compras o admin, mostrar las SP pendientes en una sección separada
-            const canCreateOC = user.type === 'compras' || user.type === 'admin';
+            const canCreateOC = userRole === 'compras' || userRole === 'admin';
             if (canCreateOC && pendientesSPList) {
                 const spPendientes = documentos.filter(doc => 
                     doc.tipo === 'sp' && doc.estado === 'pendiente'
@@ -100,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para realizar la búsqueda
     async function realizarBusqueda() {
         const searchTerm = searchInput.value.trim().toLowerCase();
-        const canCreateOC = user.type === 'compras' || user.type === 'admin';
+        const canCreateOC = userRole === 'compras' || userRole === 'admin';
         
         if (searchTerm) {
             try {
@@ -134,6 +184,76 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Función para mostrar/ocultar acciones según el rol
+    function actualizarInterfaz() {
+        const userType = userRole;
+        const actionCards = document.querySelectorAll('.action-cards');
+
+        // Ocultar todas las secciones primero
+        actionCards.forEach(card => {
+            card.style.display = 'none';
+        });
+
+        // Mostrar las secciones correspondientes al rol del usuario
+        if (userType === 'admin') {
+            // Admin ve todas las acciones
+            actionCards.forEach(card => {
+                card.style.display = 'grid';
+            });
+        } else {
+            // Otros usuarios ven solo sus acciones específicas
+            const userCard = document.querySelector(`.action-cards[data-role="${userType}"]`);
+            if (userCard) {
+                userCard.style.display = 'grid';
+            }
+        }
+    }
+
+    // Actualizar la interfaz al cargar la página
+    actualizarInterfaz();
+
     // Cargar documentos al iniciar
     cargarDocumentos();
-}); 
+});
+
+// Función para cargar solicitudes pendientes
+async function cargarSolicitudesPendientes() {
+    try {
+        const response = await fetch('/api/documentos?tipo=sp&estado=pendiente');
+        if (!response.ok) throw new Error('Error al cargar solicitudes');
+        const solicitudes = await response.json();
+        
+        const pendingCount = document.getElementById('pendingCount');
+        if (pendingCount) {
+            pendingCount.textContent = solicitudes.length;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Función para cargar últimas OC
+async function cargarUltimasOC() {
+    try {
+        const response = await fetch('/api/documentos?tipo=oc&limit=5');
+        if (!response.ok) throw new Error('Error al cargar OC');
+        const ordenes = await response.json();
+        
+        const activityList = document.getElementById('activityList');
+        if (activityList) {
+            activityList.innerHTML = ordenes.map(oc => `
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-title">${oc.numero}</div>
+                        <div class="activity-meta">
+                            <span class="activity-user">${oc.creado_por}</span>
+                            <span class="activity-date">${new Date(oc.fecha).toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+} 

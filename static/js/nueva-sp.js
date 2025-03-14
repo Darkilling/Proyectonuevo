@@ -1,134 +1,223 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar autenticación usando auth.js
-    const user = auth.checkAuth();
-    if (!user) return;
-
-    // Verificar permisos (solo admin y operación pueden crear SP)
-    if (!auth.checkPermissions(['admin', 'operacion'])) return;
-
-    const form = document.getElementById('spForm');
-    const itemsContainer = document.getElementById('items-container');
-    const addItemButton = document.getElementById('addItem');
-    let itemCount = 1;
-
-    // Establecer la fecha actual como valor predeterminado
-    document.getElementById('fecha').valueAsDate = new Date();
-
-    // Autocompletar datos del usuario
-    document.getElementById('solicitante').value = user.name;
-    document.getElementById('departamento').value = user.type === 'admin' ? 'Administración' : 'Operaciones';
-
-    // Función para crear una nueva fila de ítem
-    function createItemRow(index) {
-        const itemRow = document.createElement('div');
-        itemRow.className = 'item-row';
-        itemRow.innerHTML = `
-            <div class="form-group">
-                <label>Descripción:</label>
-                <input type="text" name="items[${index}][descripcion]" required>
-            </div>
-            <div class="form-group">
-                <label>Cantidad:</label>
-                <input type="number" name="items[${index}][cantidad]" min="1" required>
-            </div>
-            <div class="form-group">
-                <label>Unidad:</label>
-                <select name="items[${index}][unidad]" required>
-                    <option value="unidad">Unidad</option>
-                    <option value="kg">Kilogramos</option>
-                    <option value="lt">Litros</option>
-                    <option value="mt">Metros</option>
-                </select>
-            </div>
-            <button type="button" class="btn btn-danger remove-item">×</button>
-        `;
-
-        // Agregar el botón de eliminar
-        const removeButton = itemRow.querySelector('.remove-item');
-        removeButton.addEventListener('click', () => {
-            itemRow.remove();
-            updateItemIndexes();
-        });
-
-        return itemRow;
+    // Verificar autenticación
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    if (!userData.username) {
+        window.location.href = '/login';
+        return;
     }
 
-    // Función para actualizar los índices de los ítems
-    function updateItemIndexes() {
-        const items = itemsContainer.querySelectorAll('.item-row');
-        items.forEach((item, index) => {
-            const inputs = item.querySelectorAll('input, select');
-            inputs.forEach(input => {
-                const name = input.getAttribute('name');
-                if (name) {
-                    input.setAttribute('name', name.replace(/\d+/, index));
-                }
-            });
+    // Actualizar nombre de usuario
+    document.getElementById('userName').textContent = userData.username;
+
+    // Generar número de SP automático
+    generarNumeroSP();
+
+    // Manejar envío del formulario
+    const spForm = document.getElementById('spForm');
+    if (spForm) {
+        spForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await guardarSolicitud();
         });
     }
 
-    // Agregar nuevo ítem
-    addItemButton.addEventListener('click', () => {
-        const newItem = createItemRow(itemCount++);
-        itemsContainer.appendChild(newItem);
-    });
-
-    // Agregar el primer ítem automáticamente si no hay ninguno
-    if (itemsContainer.children.length === 0) {
-        addItemButton.click();
+    // Manejar cambio de tipo
+    const tipoSelect = document.getElementById('tipo');
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', mostrarCamposTipo);
     }
 
-    // Manejar el envío del formulario
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    // Manejar adjuntar documento
+    const btnAdjuntar = document.getElementById('btnAdjuntar');
+    if (btnAdjuntar) {
+        btnAdjuntar.addEventListener('click', adjuntarDocumento);
+    }
+});
 
-        // Validar que haya al menos un ítem
-        if (itemsContainer.children.length === 0) {
-            alert('Debe agregar al menos un ítem a la solicitud');
+// Función para generar número de SP automático
+async function generarNumeroSP() {
+    try {
+        // Simulamos la generación del número por ahora
+        const fecha = new Date();
+        const año = fecha.getFullYear().toString().substr(-2);
+        const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+        const nuevoNumero = `SP${año}${mes}-${random}`;
+        
+        const numeroInput = document.getElementById('numero');
+        if (numeroInput) {
+            numeroInput.value = nuevoNumero;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error al generar el número de SP');
+    }
+}
+
+// Función para mostrar campos según el tipo seleccionado
+function mostrarCamposTipo() {
+    const tipo = document.getElementById('tipo').value;
+    const camposServicio = document.getElementById('camposServicio');
+    const camposMaterial = document.getElementById('camposMaterial');
+
+    if (!camposServicio || !camposMaterial) return;
+
+    // Ocultar todos los campos
+    camposServicio.classList.add('hidden');
+    camposMaterial.classList.add('hidden');
+
+    // Mostrar campos según el tipo seleccionado
+    if (tipo === 'servicio') {
+        camposServicio.classList.remove('hidden');
+        // Hacer campos de servicio requeridos
+        const camposRequeridos = ['rut', 'razonSocial', 'jefeProyecto'];
+        camposRequeridos.forEach(campo => {
+            const input = document.getElementById(campo);
+            if (input) input.required = true;
+        });
+    } else if (tipo === 'material') {
+        camposMaterial.classList.remove('hidden');
+        // Hacer campos de material requeridos
+        const camposRequeridos = ['nombreMaterial', 'cantidad', 'cecoMaterial', 'descripcion'];
+        camposRequeridos.forEach(campo => {
+            const input = document.getElementById(campo);
+            if (input) input.required = true;
+        });
+    }
+}
+
+// Función para adjuntar documento
+function adjuntarDocumento() {
+    const input = document.getElementById('documento');
+    if (!input || !input.files[0]) {
+        mostrarError('Por favor seleccione un archivo');
+        return;
+    }
+
+    const file = input.files[0];
+
+    // Validar tipo de archivo
+    const tiposPermitidos = ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/jpeg', 'image/png'];
+    if (!tiposPermitidos.includes(file.type)) {
+        mostrarError('Tipo de archivo no permitido');
+        return;
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        mostrarError('El archivo no debe superar los 5MB');
             return;
         }
 
-        // Recolectar los datos del formulario
-        const formData = new FormData(form);
+    // Mostrar documento adjunto
+    const documentosAdjuntos = document.getElementById('documentosAdjuntos');
+    if (!documentosAdjuntos) return;
+
+    const documentoElement = document.createElement('div');
+    documentoElement.className = 'documento-adjunto';
+    documentoElement.innerHTML = `
+        <div class="documento-info">
+            <i class="fas ${getIconoArchivo(file.type)}"></i>
+            <span>${file.name}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="btn-eliminar">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    documentosAdjuntos.appendChild(documentoElement);
+    input.value = ''; // Limpiar input
+}
+
+// Función para obtener el ícono según el tipo de archivo
+function getIconoArchivo(tipo) {
+    switch (tipo) {
+        case 'application/pdf':
+            return 'fa-file-pdf';
+        case 'application/vnd.ms-excel':
+        case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+            return 'fa-file-excel';
+        case 'image/jpeg':
+        case 'image/png':
+            return 'fa-file-image';
+        default:
+            return 'fa-file';
+    }
+}
+
+// Función para guardar la solicitud
+async function guardarSolicitud() {
+    try {
+        const tipo = document.getElementById('tipo').value;
+        
+        // Datos básicos de la solicitud
         const solicitud = {
             tipo: 'sp',
-            numero: `SP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-            solicitante: formData.get('solicitante'),
-            departamento: formData.get('departamento'),
-            fecha: formData.get('fecha'),
+            numero: document.getElementById('numero').value,
+            solicitante: document.getElementById('solicitante').value,
+            departamento: document.getElementById('departamento').value,
+            fecha: new Date().toISOString().split('T')[0],
             estado: 'pendiente',
+            proveedor: document.getElementById('proveedor').value,
+            rut: document.getElementById('rut').value,
+            total: parseFloat(document.getElementById('total').value) || 0,
             items: []
         };
 
-        // Recolectar los ítems
-        const items = itemsContainer.querySelectorAll('.item-row');
-        items.forEach((item, index) => {
-            solicitud.items.push({
-                descripcion: formData.get(`items[${index}][descripcion]`),
-                cantidad: parseInt(formData.get(`items[${index}][cantidad]`)),
-                unidad: formData.get(`items[${index}][unidad]`)
-            });
+        // Agregar datos específicos según el tipo
+        if (tipo === 'servicio') {
+            solicitud.jefe_proyecto = document.getElementById('jefeProyecto').value;
+        } else if (tipo === 'material') {
+            const item = {
+                descripcion: document.getElementById('nombreMaterial').value,
+                cantidad: parseInt(document.getElementById('cantidad').value, 10),
+                unidad: document.getElementById('unidad').value,
+                precio: parseFloat(document.getElementById('precio').value) || 0
+            };
+            solicitud.items.push(item);
+        }
+
+        // Realizar la petición POST
+        const response = await fetch('/api/documentos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(solicitud)
         });
 
-        try {
-            const response = await fetch('/api/documentos', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(solicitud)
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al crear la solicitud');
-            }
-
-            const resultado = await response.json();
-            alert('Solicitud de pedido creada exitosamente');
-            window.location.href = 'index.html';
-        } catch (error) {
-            console.error('Error al crear la solicitud:', error);
-            alert('Error al crear la solicitud. Por favor, intente nuevamente.');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al guardar la solicitud');
         }
-    });
-}); 
+
+        const result = await response.json();
+        mostrarMensaje('Solicitud guardada exitosamente', 'success');
+        setTimeout(() => {
+            window.location.href = '/ver-solicitudes.html';
+        }, 1500);
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError(error.message || 'Error al guardar la solicitud. Por favor, intente nuevamente.');
+    }
+}
+
+// Funciones auxiliares para mostrar mensajes
+function mostrarMensaje(mensaje, tipo) {
+    const alerta = document.createElement('div');
+    alerta.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'}`;
+    alerta.innerHTML = `
+        <div class="alert-content">
+            <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${mensaje}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" class="alert-close">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(alerta);
+    setTimeout(() => alerta.remove(), 3000);
+}
+
+function mostrarError(mensaje) {
+    mostrarMensaje(mensaje, 'error');
+} 

@@ -12,11 +12,13 @@
 <body>
     <div class="container">
         <header>
-            <h1>Aprobaciones Pendientes</h1>
-            <a href="index.html" class="btn btn-link">← Volver al inicio</a>
+            <div class="logo-container">
+                <img src="img/logo.png" alt="Logo de la empresa">
+            </div>
+            <h1>Gestión de Aprobaciones</h1>
             <div class="user-info">
                 <span id="userName"></span>
-                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
+                <button class="btn-link" onclick="logout()">Cerrar Sesión</button>
             </div>
         </header>
 
@@ -65,7 +67,7 @@
                     <div class="document-details">
                         <!-- Los detalles del documento se cargarán dinámicamente -->
                     </div>
-                    <div class="approval-form" data-role="aprobador">
+                    <div class="approval-form" style="display: block;">
                         <div class="form-group">
                             <label for="comentarios">Comentarios:</label>
                             <textarea id="comentarios" rows="4"></textarea>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Solicitud de Pedido</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/editar-sp.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <img src="img/logo.png" alt="Logo de la empresa">
+            </div>
+            <h1>Editar Solicitud de Pedido</h1>
+            <div class="user-info">
+                <span id="userName"></span>
+                <button class="btn-link" onclick="window.location.href='solicitudes.html'">Volver</button>
+                <button class="btn-link" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <form id="editarSPForm" class="form-container">
+                <div class="form-group">
+                    <label for="numeroSP">Número SP:</label>
+                    <input type="text" id="numeroSP" name="numeroSP" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="departamento">Departamento:</label>
+                    <input type="text" id="departamento" name="departamento" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ceco">CECO:</label>
+                    <input type="text" id="ceco" name="ceco" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="producto">Producto:</label>
+                    <input type="text" id="producto" name="producto" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cantidad">Cantidad:</label>
+                    <input type="number" id="cantidad" name="cantidad" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="descripcion">Descripción:</label>
+                    <textarea id="descripcion" name="descripcion" rows="4"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='solicitudes.html'">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+    <script src="js/editar-sp.js"></script>
+</body>
+</html> 

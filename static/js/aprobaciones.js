@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar si el usuario es un aprobador
+    // Verificar si el usuario es un aprobador o admin
     const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
-    const isAprobador = userData.type === 'aprobador';
+    const isAprobador = userData.type === 'aprobador' || userData.type === 'admin';
 
     const documentList = document.querySelector('.document-list');
     const modal = document.getElementById('approvalModal');
@@ -112,24 +112,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
 
-        // Configuración de fuentes y colores
-        const colorPrimario = [33, 150, 243];
-        const colorTexto = [51, 51, 51];
+        // Configuración de colores corporativos
+        const colorPrimario = [27, 94, 32];  // Verde oscuro
+        const colorSecundario = [13, 71, 161];  // Azul oscuro
+        const colorTexto = [255, 255, 255];  // Blanco
+        const colorTextoNegro = [51, 51, 51];  // Negro para texto normal
         
-        // Encabezado
+        // Encabezado con gradiente
         pdf.setFillColor(...colorPrimario);
         pdf.rect(0, 0, pdf.internal.pageSize.width, 40, 'F');
         
-        pdf.setTextColor(255, 255, 255);
+        // Agregar logo
+        const logo = new Image();
+        logo.src = 'img/logo.png';
+        pdf.addImage(logo, 'PNG', 20, 10, 30, 30);
+        
+        // Título
+        pdf.setTextColor(...colorTexto);
         pdf.setFontSize(20);
         pdf.text(
             doc.tipo === 'sp' ? 'Solicitud de Pedido' : 'Orden de Compra',
-            20,
+            60,
             25
         );
 
         // Información del documento
-        pdf.setTextColor(...colorTexto);
+        pdf.setTextColor(...colorTextoNegro);
         pdf.setFontSize(12);
         let y = 60;
 
@@ -184,8 +192,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 cellPadding: 5
             },
             headStyles: {
-                fillColor: [33, 150, 243],
-                textColor: [255, 255, 255]
+                fillColor: colorPrimario,
+                textColor: colorTexto
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
             }
         });
 
@@ -208,16 +219,26 @@ document.addEventListener('DOMContentLoaded', function() {
         y = pdf.internal.pageSize.height - 60;
         pdf.setFontSize(16);
         const estado = doc.estado.toUpperCase();
+        
+        // Dibujar sello con colores corporativos
+        pdf.setLineWidth(2);
+        pdf.setDrawColor(...colorSecundario);
+        pdf.circle(pdf.internal.pageSize.width - 60, y, 20);
+        
+        // Color del texto del estado según el estado
         pdf.setTextColor(
-            estado === 'APROBADO' ? 40 : 220,
-            estado === 'APROBADO' ? 167 : 53,
-            estado === 'APROBADO' ? 69 : 69
+            estado === 'APROBADO' ? ...colorPrimario :
+            estado === 'RECHAZADO' ? ...colorSecundario :
+            [249, 168, 37]  // Amarillo para pendiente
         );
         
-        // Dibujar sello
-        pdf.setLineWidth(2);
-        pdf.circle(pdf.internal.pageSize.width - 60, y, 20);
         pdf.text(estado, pdf.internal.pageSize.width - 85, y + 5);
+
+        // Pie de página
+        pdf.setFontSize(10);
+        pdf.setTextColor(...colorTextoNegro);
+        pdf.text('Documento generado electrónicamente', 20, pdf.internal.pageSize.height - 20);
+        pdf.text(new Date().toLocaleString('es-CL'), pdf.internal.pageSize.width - 20, pdf.internal.pageSize.height - 20, { align: 'right' });
 
         // Guardar el PDF
         pdf.save(`${doc.tipo.toUpperCase()}-${doc.numero}.pdf`);
@@ -270,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ${doc.aprobaciones.map(apr => `
                             <div class="aprobacion-item">
                                 <p><strong>Usuario:</strong> ${apr.usuario}</p>
-                                <p><strong>Fecha:</strong> ${apr.fecha}</p>
+                                <p><strong>Fecha:</strong> ${formatDate(apr.fecha)}</p>
                                 <p><strong>Acción:</strong> ${capitalizeFirst(apr.accion)}</p>
                                 <p><strong>Comentarios:</strong> ${apr.comentarios}</p>
                             </div>
@@ -282,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Mostrar/ocultar formulario de aprobación según el rol y estado
         const approvalForm = modal.querySelector('.approval-form');
-        if ((userData.type === 'aprobador' || userData.type === 'admin') && doc.estado === 'pendiente') {
+        if ((isAprobador && doc.estado === 'pendiente') || userData.type === 'admin') {
             approvalForm.style.display = 'block';
         } else {
             approvalForm.style.display = 'none';
@@ -317,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Verificar si el usuario tiene permisos de aprobación (aprobador o admin)
-    if (userData.type === 'aprobador' || userData.type === 'admin') {
+    if (isAprobador) {
         aprobarBtn.addEventListener('click', async () => {
             const comentarios = document.getElementById('comentarios').value;
             if (!comentarios.trim()) {
@@ -379,6 +400,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (fechaHasta) {
             filtros.fecha_hasta = fechaHasta;
+        }
+
+        // Si el usuario es admin, mostrar todos los documentos
+        if (userData.type === 'admin') {
+            delete filtros.estado; // Eliminar el filtro de estado para admin
         }
 
         const documentos = await obtenerDocumentos(filtros);

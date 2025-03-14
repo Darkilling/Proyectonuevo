@@ -3,88 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de SP y OC</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/index.css">
+    <title>Sistema de Gestión - SP y OC</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <header class="main-header">
-            <div class="user-info">
-                <span id="userName"></span>
-                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <img src="/img/logo.png" alt="Logo Sistema">
+                <h2>Sistema de Gestión</h2>
             </div>
-            <h1>Sistema de Gestión de SP y OC</h1>
-            <p class="subtitle">Gestión de Solicitudes de Pedido y Órdenes de Compra</p>
-        </header>
-
-        <div class="search-section">
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Buscar OC o SP..." class="search-input">
-                <button class="btn btn-primary" id="searchButton">Buscar</button>
-            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="/" class="active"><i class="fas fa-home"></i><span>Inicio</span></a></li>
+                    <li><a href="/nueva-sp.html"><i class="fas fa-file-alt"></i><span>Nueva SP</span></a></li>
+                    <li><a href="/solicitudes.html"><i class="fas fa-list"></i><span>Ver Solicitudes</span></a></li>
+                    <li><a href="/ordenes-compra.html"><i class="fas fa-shopping-cart"></i><span>Órdenes de Compra</span></a></li>
+                    <li><a href="/aprobaciones.html"><i class="fas fa-check-circle"></i><span>Aprobaciones</span></a></li>
+                    <li><a href="/usuarios.html"><i class="fas fa-users"></i><span>Usuarios</span></a></li>
+                    <li><a href="/logout"><i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a></li>
+                </ul>
+            </nav>
         </div>
 
-        <!-- Sección de SP pendientes para usuarios de compras -->
-        <div id="pendientesSPSection" class="pending-sp-section" style="display: none;">
-            <h2>Solicitudes de Pedido Pendientes</h2>
-            <div id="pendientesSP" class="documents-list">
-                <!-- Las SP pendientes se cargarán aquí -->
-            </div>
-        </div>
+        <!-- Contenido principal -->
+        <div class="main-content">
+            <header class="main-header">
+                <div class="header-content">
+                    <h1>Panel de Control</h1>
+                    <div class="user-info">
+                        <i class="fas fa-user"></i>
+                        <span id="userName"></span>
+                    </div>
+                </div>
+            </header>
 
-        <div class="actions-grid">
-            <div class="action-card" data-role="admin,operacion">
-                <div class="action-icon">📝</div>
-                <h3>Nueva Solicitud de Pedido</h3>
-                <p>Crear una nueva solicitud de pedido para su departamento</p>
-                <a href="nueva-sp.html" class="btn btn-primary">Crear SP</a>
-            </div>
+            <div class="content">
+                <!-- Sección de búsqueda -->
+                <div class="search-section">
+                    <div class="search-input-container">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Buscar documentos...">
+                        <button id="searchButton" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
 
-            <div class="action-card" data-role="admin,compras">
-                <div class="action-icon">📋</div>
-                <h3>Nueva Orden de Compra</h3>
-                <p>Generar una nueva orden de compra para proveedores</p>
-                <a href="nueva-oc.html" class="btn btn-primary">Crear OC</a>
-            </div>
+                <!-- Sección de Solicitudes Pendientes -->
+                <div id="pendientesSPSection" class="section" style="display: none;">
+                    <h2>Solicitudes Pendientes</h2>
+                    <div id="pendientesSP" class="document-list"></div>
+                </div>
 
-            <div class="action-card" data-role="admin,aprobador">
-                <div class="action-icon">✓</div>
-                <h3>Aprobaciones Pendientes</h3>
-                <p>Revisar y aprobar documentos pendientes</p>
-                <a href="aprobaciones.html" class="btn btn-primary">Ver Pendientes</a>
-            </div>
+                <!-- Sección de Documentos Recientes -->
+                <div class="section">
+                    <h2>Documentos Recientes</h2>
+                    <div id="recentDocuments" class="document-list"></div>
+                </div>
 
-            <div class="action-card" data-role="admin,compras,aprobador">
-                <div class="action-icon">📊</div>
-                <h3>Reportes</h3>
-                <p>Ver estadísticas y generar reportes</p>
-                <button class="btn btn-primary" onclick="alert('Módulo en desarrollo')">Ver Reportes</button>
-            </div>
+                <!-- Sección de Administrador -->
+                <div class="action-cards" data-role="admin">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Solicitudes de Pedido</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las solicitudes de pedido del sistema</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/nueva-sp.html">Nueva SP</button>
+                                <button class="btn btn-secondary" data-href="/solicitudes.html">Ver Lista</button>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="action-card" data-role="admin">
-                <div class="action-icon">👥</div>
-                <h3>Gestión de Usuarios</h3>
-                <p>Administrar usuarios del sistema</p>
-                <a href="usuarios.html" class="btn btn-primary">Gestionar Usuarios</a>
-            </div>
-        </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>Órdenes de Compra</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las órdenes de compra</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/nueva-oc.html">Nueva OC</button>
+                                <button class="btn btn-secondary" data-href="/ordenes-compra.html">Ver Lista</button>
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="recent-documents">
-            <h2>Documentos Recientes</h2>
-            <div class="documents-list" id="recentDocuments">
-                <!-- Los documentos recientes se cargarán dinámicamente -->
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Aprobaciones</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las aprobaciones pendientes</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/aprobaciones.html">Ver Aprobaciones</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-users"></i>
+                            <h3>Usuarios</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona los usuarios del sistema</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/usuarios.html">Gestionar Usuarios</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección de Compras -->
+                <div class="action-cards" data-role="compras" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Solicitudes de Pedido</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Visualiza las solicitudes pendientes para crear OC</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/solicitudes.html">Ver Solicitudes</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>Órdenes de Compra</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las órdenes de compra</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/nueva-oc.html">Nueva OC</button>
+                                <button class="btn btn-secondary" data-href="/ordenes-compra.html">Ver Lista</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección de Operación -->
+                <div class="action-cards" data-role="operacion" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Solicitudes de Pedido</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las solicitudes de pedido</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/nueva-sp.html">Nueva SP</button>
+                                <button class="btn btn-secondary" data-href="/solicitudes.html">Ver Lista</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>Órdenes de Compra</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Visualiza las órdenes de compra</p>
+                            <div class="card-actions">
+                                <button class="btn btn-secondary" data-href="/ordenes-compra.html">Ver Lista</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección de Aprobador -->
+                <div class="action-cards" data-role="aprobador" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Aprobaciones</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Gestiona las aprobaciones pendientes</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" data-href="/aprobaciones.html">Ver Aprobaciones</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/index.js"></script>
-    <script>
-        // Verificar autenticación y actualizar interfaz
-        document.addEventListener('DOMContentLoaded', function() {
-            auth.checkAuth();
-            auth.updateUserInterface();
-        });
-    </script>
+    <script src="/js/index.js"></script>
 </body>
 </html> 

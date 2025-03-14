@@ -3,88 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nueva Solicitud de Pedido - Sistema de Gestión</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/forms.css">
+    <title>Nueva Solicitud de Pedido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>Nueva Solicitud de Pedido</h1>
-            <a href="index.html" class="btn btn-link">← Volver al inicio</a>
-        </header>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 text-white">
+            <div class="p-4">
+                <div class="flex items-center space-x-2 mb-8">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <span id="userName" class="text-lg">Usuario</span>
+                </div>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded">
+                                <i class="fas fa-home"></i>
+                                <span>Inicio</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="solicitudes.html" class="flex items-center space-x-2 p-2 bg-blue-600 rounded">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Solicitudes</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ordenes-compra.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Órdenes de Compra</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="login.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Cerrar Sesión</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
 
-        <div class="form-container">
-            <form id="spForm" class="main-form">
-                <div class="form-group">
-                    <label for="solicitante">Solicitante:</label>
-                    <input type="text" id="solicitante" name="solicitante" required>
+        <!-- Contenido principal -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800">Nueva Solicitud de Pedido</h1>
+                    <button onclick="window.location.href='solicitudes.html'" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center space-x-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Volver</span>
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label for="departamento">Departamento:</label>
-                    <select id="departamento" name="departamento" required>
-                        <option value="">Seleccione un departamento</option>
-                        <option value="operaciones">Operaciones</option>
-                        <option value="compras">Compras</option>
-                        <option value="administracion">Administración</option>
-                    </select>
-                </div>
+                <form id="spForm" class="bg-white rounded-lg shadow-md p-6">
+                    <!-- Información básica -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Número de SP</label>
+                            <input type="text" id="numero" readonly class="w-full rounded-md border-gray-300 bg-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                            <input type="text" id="departamento" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">CECO</label>
+                            <input type="text" id="ceco" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select id="tipo" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="mostrarCamposTipo()">
+                                <option value="">Seleccione un tipo</option>
+                                <option value="material">Material</option>
+                                <option value="servicio">Servicio</option>
+                            </select>
+                        </div>
+                    </div>
 
-                <div class="form-group">
-                    <label for="fecha">Fecha de solicitud:</label>
-                    <input type="date" id="fecha" name="fecha" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="prioridad">Prioridad:</label>
-                    <select id="prioridad" name="prioridad" required>
-                        <option value="baja">Baja</option>
-                        <option value="media">Media</option>
-                        <option value="alta">Alta</option>
-                        <option value="urgente">Urgente</option>
-                    </select>
-                </div>
-
-                <div class="items-section">
-                    <h3>Ítems solicitados</h3>
-                    <div id="items-container">
-                        <div class="item-row">
-                            <div class="form-group">
-                                <label>Descripción:</label>
-                                <input type="text" name="items[0][descripcion]" required>
+                    <!-- Campos para Servicio -->
+                    <div id="camposServicio" class="hidden mb-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Información del Servicio</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">RUT</label>
+                                <input type="text" id="rut" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
-                            <div class="form-group">
-                                <label>Cantidad:</label>
-                                <input type="number" name="items[0][cantidad]" min="1" required>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
+                                <input type="text" id="razonSocial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
-                            <div class="form-group">
-                                <label>Unidad:</label>
-                                <select name="items[0][unidad]" required>
-                                    <option value="unidad">Unidad</option>
-                                    <option value="kg">Kilogramos</option>
-                                    <option value="lt">Litros</option>
-                                    <option value="mt">Metros</option>
-                                </select>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jefe de Proyecto</label>
+                                <input type="text" id="jefeProyecto" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             </div>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary" id="addItem">+ Agregar ítem</button>
-                </div>
 
-                <div class="form-group">
-                    <label for="observaciones">Observaciones:</label>
-                    <textarea id="observaciones" name="observaciones" rows="4"></textarea>
-                </div>
+                    <!-- Campos para Material -->
+                    <div id="camposMaterial" class="hidden mb-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Información del Material</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                                <input type="text" id="nombreMaterial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                                <input type="number" id="cantidad" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">CECO</label>
+                                <input type="text" id="cecoMaterial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                                <textarea id="descripcion" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Adjuntar Documento</label>
+                            <div class="flex items-center space-x-4">
+                                <input type="file" id="documento" accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png" class="flex-1">
+                                <button type="button" onclick="adjuntarDocumento()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                    Adjuntar
+                                </button>
+                            </div>
+                            <div id="documentosAdjuntos" class="mt-2 space-y-2">
+                                <!-- Los documentos adjuntos se mostrarán aquí -->
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Crear Solicitud</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Cancelar</button>
-                </div>
-            </form>
+                    <!-- Botones de acción -->
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" onclick="window.location.href='solicitudes.html'" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                            Guardar Solicitud
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    <script src="js/auth.js"></script>
+
     <script src="js/nueva-sp.js"></script>
 </body>
 </html> 

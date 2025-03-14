@@ -1,0 +1,178 @@
+.main-content {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.actions-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.actions-bar .btn {
+    min-width: 150px;
+}
+
+.documents-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+
+.documents-section h2 {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+#documentosTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#documentosTable th,
+#documentosTable td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+#documentosTable th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+#documentosTable tr:hover {
+    background-color: #f9f9f9;
+}
+
+.documento-eliminado {
+    opacity: 0.7;
+    background-color: #f8f8f8;
+}
+
+.documento-eliminado:hover {
+    background-color: #f0f0f0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit,
+.btn-delete,
+.btn-restore {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-edit {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-delete {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-restore {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-edit:hover,
+.btn-delete:hover,
+.btn-restore:hover {
+    opacity: 0.9;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-info {
+    color: #666;
+    font-size: 0.9em;
+    margin: 10px 0;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Estilos para la barra de acciones */
+.actions-bar {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        margin: 0 -20px;
+    }
+    
+    th, td {
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .actions-bar {
+        flex-direction: column;
+    }
+    
+    .actions-bar .btn {
+        width: 100%;
+    }
+    
+    .btn-edit,
+    .btn-delete,
+    .btn-restore {
+        width: 100%;
+        justify-content: center;
+    }
+} 
