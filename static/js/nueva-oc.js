@@ -1,250 +1,270 @@
-document.addEventListener('DOMContentLoaded', async function() {
-    // Verificar autenticación usando auth.js
-    const user = auth.checkAuth();
-    if (!user) return;
+// Variables globales
+let nextItemId = 1;
+let userData;
+let items = [];
 
-    // Verificar permisos (solo admin y compras pueden crear OC)
-    if (!auth.checkPermissions(['admin', 'compras'])) return;
-
-    const form = document.getElementById('ocForm');
-    const itemsContainer = document.getElementById('items-container');
-    const addItemButton = document.getElementById('addItem');
-    const subtotalElement = document.getElementById('subtotal');
-    const ivaElement = document.getElementById('iva');
-    const totalElement = document.getElementById('total');
-    let itemCount = 0;
-    let spData = null; // Variable para almacenar los datos de la SP
-
-    // Obtener ID de SP si existe
-    const urlParams = new URLSearchParams(window.location.search);
-    const spId = urlParams.get('sp_id');
-
-    // Si hay una SP, cargar sus datos
-    if (spId) {
-        try {
-            const response = await fetch(`/api/documentos/${spId}`);
-            if (!response.ok) {
-                throw new Error('Error al cargar la solicitud');
-            }
-            spData = await response.json();
-            
-            // Mostrar información de la SP
-            document.getElementById('spInfo').innerHTML = `
-                <div class="sp-info">
-                    <h3>Basado en Solicitud de Pedido: ${spData.numero}</h3>
-                    <p>Solicitante: ${spData.solicitante}</p>
-                    <p>Departamento: ${spData.departamento}</p>
-                    <p>Fecha solicitud: ${new Date(spData.fecha).toLocaleDateString('es-CL')}</p>
-                </div>
-            `;
-
-            // Establecer el número de SP en el campo correspondiente
-            document.getElementById('numeroSP').value = spData.numero;
-
-            // Pre-cargar los items de la SP
-            itemsContainer.innerHTML = '';
-            spData.items.forEach((item, index) => {
-                const itemRow = createItemRow(index);
-                itemsContainer.appendChild(itemRow);
-                
-                // Llenar los datos del item
-                const inputs = itemRow.querySelectorAll('input');
-                inputs[0].value = item.descripcion; // descripción
-                inputs[1].value = item.cantidad;    // cantidad
-                if (inputs[2]) {
-                    inputs[2].value = item.precio || ''; // precio si existe
-                }
-            });
-            itemCount = spData.items.length;
-            
-            // Actualizar totales
-            calculateTotals();
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al cargar la solicitud de pedido');
-            window.location.href = 'index.html';
-        }
+// Función para verificar si el usuario tiene sesión
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar autenticación
+    userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    if (!userData.username) {
+        window.location.href = 'login.html';
+        return;
     }
-
-    // Establecer la fecha actual como valor predeterminado
-    document.getElementById('fechaEmision').valueAsDate = new Date();
-
-    // Función para formatear moneda
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('es-CL', {
-            style: 'currency',
-            currency: 'CLP'
-        }).format(amount);
-    }
-
-    // Función para parsear moneda
-    function parseCurrency(str) {
-        return parseFloat(str.replace(/[^\d,-]/g, '').replace(',', '.'));
-    }
-
-    // Función para calcular totales
-    function calculateTotals() {
-        const items = itemsContainer.querySelectorAll('.item-row');
-        let subtotal = 0;
-
-        items.forEach(item => {
-            const cantidad = parseFloat(item.querySelector('input[name*="[cantidad]"]').value) || 0;
-            const precio = parseFloat(item.querySelector('input[name*="[precio]"]').value) || 0;
-            subtotal += cantidad * precio;
-        });
-
-        const iva = subtotal * 0.19;
-        const total = subtotal + iva;
-
-        subtotalElement.textContent = formatCurrency(subtotal);
-        ivaElement.textContent = formatCurrency(iva);
-        totalElement.textContent = formatCurrency(total);
-
-        return { subtotal, iva, total };
-    }
-
-    // Función para crear una nueva fila de ítem
-    function createItemRow(index) {
-        const itemRow = document.createElement('div');
-        itemRow.className = 'item-row';
-        itemRow.innerHTML = `
-            <div class="form-group">
-                <label>Descripción:</label>
-                <input type="text" name="items[${index}][descripcion]" required>
-            </div>
-            <div class="form-group">
-                <label>Cantidad:</label>
-                <input type="number" name="items[${index}][cantidad]" min="1" required>
-            </div>
-            <div class="form-group">
-                <label>Precio unitario:</label>
-                <input type="number" name="items[${index}][precio]" min="0" step="0.01" required>
-            </div>
-            <button type="button" class="btn btn-danger remove-item">×</button>
-        `;
-
-        // Agregar listeners para calcular totales
-        const inputs = itemRow.querySelectorAll('input[type="number"]');
-        inputs.forEach(input => {
-            input.addEventListener('input', calculateTotals);
-        });
-
-        // Agregar el botón de eliminar
-        const removeButton = itemRow.querySelector('.remove-item');
-        removeButton.addEventListener('click', () => {
-            itemRow.remove();
-            updateItemIndexes();
-            calculateTotals();
-        });
-
-        return itemRow;
-    }
-
-    // Función para actualizar los índices de los ítems
-    function updateItemIndexes() {
-        const items = itemsContainer.querySelectorAll('.item-row');
-        items.forEach((item, index) => {
-            const inputs = item.querySelectorAll('input');
-            inputs.forEach(input => {
-                const name = input.getAttribute('name');
-                if (name) {
-                    input.setAttribute('name', name.replace(/\d+/, index));
-                }
-            });
-        });
-    }
-
-    // Validación del formato RUT
-    const rutInput = document.getElementById('rut');
-    rutInput.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\./g, '').replace('-', '');
-        if (value.length > 1) {
-            value = value.slice(0, -1) + '-' + value.slice(-1);
-            const parts = value.split('-')[0].split('');
-            for (let i = parts.length - 3; i > 0; i -= 3) {
-                parts.splice(i, 0, '.');
-            }
-            value = parts.join('') + '-' + value.split('-')[1];
-        }
-        e.target.value = value;
+    
+    // Actualizar nombre de usuario
+    document.getElementById('userName').textContent = userData.username;
+    document.getElementById('solicitante').value = userData.nombre ? `${userData.nombre} ${userData.apellido || ''}` : userData.username;
+    
+    // Generar número de OC
+    generarNumeroOC();
+    
+    // Establecer fecha de emisión actual
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaEmision').value = hoy;
+    
+    // Agregar el primer item por defecto
+    agregarItem();
+    
+    // Event listeners
+    document.getElementById('agregarItem').addEventListener('click', agregarItem);
+    document.getElementById('ordenCompraForm').addEventListener('submit', guardarOrden);
+    document.getElementById('btnVolver').addEventListener('click', function() {
+        window.location.href = 'ordenes-compra.html';
     });
-
-    // Event Listeners
-    if (addItemButton) {
-        addItemButton.addEventListener('click', () => {
-            const newItem = createItemRow(itemCount++);
-            itemsContainer.appendChild(newItem);
-            calculateTotals();
+    document.getElementById('cerrarSesion').addEventListener('click', function() {
+        sessionStorage.removeItem('userData');
+        window.location.href = 'login.html';
+    });
+    
+    // Event delegation para eliminar ítems
+    document.getElementById('itemsContainer').addEventListener('click', function(e) {
+        if (e.target.classList.contains('eliminar-item') || e.target.parentElement.classList.contains('eliminar-item')) {
+            const button = e.target.classList.contains('eliminar-item') ? e.target : e.target.parentElement;
+            const itemRow = button.closest('.item-row');
+            eliminarItem(itemRow);
+        }
+    });
+    
+    // Event delegation para calcular totales cuando se modifican valores
+    document.getElementById('itemsContainer').addEventListener('input', function(e) {
+        const target = e.target;
+        if (target.classList.contains('item-cantidad') || 
+            target.classList.contains('item-precio') || 
+            target.classList.contains('item-descuento')) {
+            const itemRow = target.closest('.item-row');
+            calcularTotalItem(itemRow);
+            calcularTotales();
+                }
+            });
         });
-    } else {
-        console.error('El elemento addItem no existe en el DOM');
+
+function generarNumeroOC() {
+    // Generar un número de OC basado en la fecha y un número aleatorio
+    const fecha = new Date();
+    const year = fecha.getFullYear().toString().substring(2);
+    const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    
+    const numeroOC = `OC${year}${month}-${random}`;
+    document.getElementById('numeroOC').value = numeroOC;
+}
+
+function agregarItem() {
+    const itemsContainer = document.getElementById('itemsContainer');
+    const template = document.getElementById('itemTemplate').innerHTML;
+    
+    // Reemplazar el ID del ítem en el template
+    const itemHtml = template.replaceAll('{itemId}', nextItemId);
+    
+    // Crear un elemento div para el nuevo ítem
+    const itemDiv = document.createElement('div');
+    itemDiv.innerHTML = itemHtml;
+    
+    // Agregar el elemento al contenedor
+    itemsContainer.appendChild(itemDiv.firstElementChild);
+    
+    // Incrementar el contador de ID para el siguiente ítem
+    nextItemId++;
+    
+    // Renumerar todos los ítems
+    renumerarItems();
+    
+    // Calcular totales
+    calcularTotales();
+}
+
+function eliminarItem(itemRow) {
+    if (document.querySelectorAll('.item-row').length === 1) {
+        mostrarError('Debe haber al menos un ítem en la orden');
+        return;
     }
+    
+    itemRow.remove();
+    
+    // Renumerar todos los ítems
+    renumerarItems();
+    
+    // Recalcular totales
+    calcularTotales();
+}
 
-    // Agregar el primer ítem automáticamente
-    addItemButton.click();
+function renumerarItems() {
+    const items = document.querySelectorAll('.item-row');
+    items.forEach((item, index) => {
+        item.querySelector('.item-number').textContent = index + 1;
+    });
+}
 
-    // Manejar el envío del formulario
-    form.addEventListener('submit', async (e) => {
+function calcularTotalItem(itemRow) {
+    const cantidad = parseFloat(itemRow.querySelector('.item-cantidad').value) || 0;
+    const precio = parseFloat(itemRow.querySelector('.item-precio').value) || 0;
+    const descuentoPorcentaje = parseFloat(itemRow.querySelector('.item-descuento').value) || 0;
+    
+    const subtotal = cantidad * precio;
+    const descuento = subtotal * (descuentoPorcentaje / 100);
+    const total = subtotal - descuento;
+    
+    itemRow.querySelector('.item-total').value = formatearNumero(total);
+}
+
+function calcularTotales() {
+    let subtotal = 0;
+    let descuentoTotal = 0;
+    
+    // Calcular subtotal y descuento
+    document.querySelectorAll('.item-row').forEach(item => {
+        const cantidad = parseFloat(item.querySelector('.item-cantidad').value) || 0;
+        const precio = parseFloat(item.querySelector('.item-precio').value) || 0;
+        const descuentoPorcentaje = parseFloat(item.querySelector('.item-descuento').value) || 0;
+        
+        const itemSubtotal = cantidad * precio;
+        const itemDescuento = itemSubtotal * (descuentoPorcentaje / 100);
+        
+        subtotal += itemSubtotal;
+        descuentoTotal += itemDescuento;
+    });
+    
+    // Calcular IVA y total
+    const iva = (subtotal - descuentoTotal) * 0.19;
+    const total = subtotal - descuentoTotal + iva;
+    
+    // Actualizar valores en la interfaz
+    document.getElementById('subtotal').value = formatearNumero(subtotal);
+    document.getElementById('descuento').value = formatearNumero(descuentoTotal);
+    document.getElementById('iva').value = formatearNumero(iva);
+    document.getElementById('total').value = formatearNumero(total);
+}
+
+async function guardarOrden(e) {
         e.preventDefault();
 
-        // Validar que haya al menos un ítem
-        if (itemsContainer.children.length === 0) {
-            alert('Debe agregar al menos un ítem a la orden');
+    // Validación básica del formulario
+    const form = document.getElementById('ordenCompraForm');
+    if (!form.checkValidity()) {
+        // Mostrar mensajes de validación del navegador
+        form.reportValidity();
             return;
         }
 
-        const totales = calculateTotals();
-        const formData = new FormData(form);
+    // Construir objeto de orden de compra
         const orden = {
-            tipo: 'oc',
-            numero: `OC-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-            proveedor: formData.get('proveedor'),
-            rut: formData.get('rut'),
-            fecha: formData.get('fechaEmision'),
-            estado: 'pendiente',
-            total: totales.total,
-            items: [],
-            solicitud_id: spId
+        tipo: 'oc',
+        numero: document.getElementById('numeroOC').value,
+        fecha_emision: document.getElementById('fechaEmision').value,
+        fecha_termino: document.getElementById('fechaTermino').value,
+        solicitante: document.getElementById('solicitante').value,
+        condicion_pago: document.getElementById('condicionPago').value,
+        departamento: document.getElementById('departamento').value,
+        estado: 'emitida',
+        proveedor: document.getElementById('proveedor').value,
+        rut: document.getElementById('rut').value,
+        contacto: document.getElementById('contacto').value,
+        email: document.getElementById('email').value,
+        telefono: document.getElementById('telefono').value,
+        direccion: document.getElementById('direccion').value,
+        subtotal: limpiarFormato(document.getElementById('subtotal').value),
+        descuento: limpiarFormato(document.getElementById('descuento').value),
+        iva: limpiarFormato(document.getElementById('iva').value),
+        total: limpiarFormato(document.getElementById('total').value),
+        items: []
+    };
+    
+    // Agregar items
+    document.querySelectorAll('.item-row').forEach((item, index) => {
+        const itemData = {
+            numero: index + 1,
+            nombre: item.querySelector('.item-nombre').value,
+            descripcion: item.querySelector('.item-descripcion').value,
+            ceco: item.querySelector('.item-ceco').value,
+            cantidad: parseFloat(item.querySelector('.item-cantidad').value) || 0,
+            unidad: item.querySelector('.item-unidad').value,
+            precio: parseFloat(item.querySelector('.item-precio').value) || 0,
+            descuento_porcentaje: parseFloat(item.querySelector('.item-descuento').value) || 0,
+            total: limpiarFormato(item.querySelector('.item-total').value)
         };
-
-        // Si hay datos de SP, incluir el solicitante y departamento
-        if (spData) {
-            orden.solicitante = spData.solicitante;
-            orden.departamento = spData.departamento;
-        }
-
-        // Recolectar los ítems
-        const items = itemsContainer.querySelectorAll('.item-row');
-        items.forEach((item, index) => {
-            orden.items.push({
-                descripcion: formData.get(`items[${index}][descripcion]`),
-                cantidad: parseInt(formData.get(`items[${index}][cantidad]`)),
-                precio: parseFloat(formData.get(`items[${index}][precio]`))
-            });
-        });
-
-        try {
-            const response = await fetch('/api/documentos', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(orden)
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al crear la orden');
-            }
-
-            const resultado = await response.json();
-            alert('Orden de compra creada exitosamente');
-            window.location.href = 'index.html';
-        } catch (error) {
-            console.error('Error al crear la orden:', error);
-            alert('Error al crear la orden. Por favor, intente nuevamente.');
-        }
+        
+        orden.items.push(itemData);
     });
+    
+    console.log('Datos a enviar:', orden);
+    
+    try {
+        // Enviar datos al servidor
+        const response = await fetch('/api/documentos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Username': userData.username || 'admin' // Agregar el usuario actual en los headers
+            },
+            body: JSON.stringify(orden)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al crear la orden de compra');
+        }
+        
+        const data = await response.json();
+        mostrarMensaje('Orden de compra creada exitosamente', 'success');
+        
+        // Redireccionar después de un tiempo
+        setTimeout(() => {
+            window.location.href = 'ordenes-compra.html';
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error al crear la orden de compra: ' + error.message);
+    }
+}
 
-    // Inicializar totales
-    calculateTotals();
-}); 
+function formatearNumero(numero) {
+    return numero.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function limpiarFormato(valor) {
+    if (typeof valor === 'string') {
+        return parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+    }
+    return valor;
+}
+
+function mostrarMensaje(mensaje, tipo) {
+    const alertaDiv = document.createElement('div');
+    alertaDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+        tipo === 'success' ? 'bg-green-600' : 'bg-red-600'
+    } text-white flex items-center space-x-2`;
+    alertaDiv.innerHTML = `
+        <span>${mensaje}</span>
+        <button onclick="this.parentElement.remove()" class="ml-4">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(alertaDiv);
+    setTimeout(() => alertaDiv.remove(), 3000);
+}
+
+function mostrarError(mensaje) {
+    mostrarMensaje(mensaje, 'error');
+} 

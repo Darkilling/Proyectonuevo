@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Orden de Compra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                font-size: 14px;
+                line-height: 1.2;
+            }
+            @page {
+                margin: 15mm;
+                size: letter portrait;
+            }
+        }
+        
+        .section-title {
+            background-color: #f3f4f6;
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .item-row {
+            border-bottom: 1px solid #e5e7eb;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        
+        .border-bottom {
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .border-top {
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .border-all {
+            border: 1px solid #e5e7eb;
+        }
+        
+        .logo-placeholder {
+            width: 160px;
+            height: 60px;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- Botones de acción (solo visibles en navegador) -->
+    <div class="no-print bg-gray-100 p-4 fixed top-0 left-0 w-full shadow-md z-10">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button id="btnVolver" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 flex items-center space-x-2">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Volver</span>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800">Vista de Impresión - Orden de Compra</h1>
+            </div>
+            <button id="btnImprimir" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2">
+                <i class="fas fa-print"></i>
+                <span>Imprimir</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Contenido de la impresión -->
+    <div class="container mx-auto p-4 mt-20 print:mt-0">
+        <!-- Encabezado -->
+        <div class="flex justify-between items-start mb-8 border-bottom pb-4">
+            <div>
+                <div class="logo-placeholder">
+                    <span class="text-gray-500">LOGO EMPRESA</span>
+                </div>
+                <h2 class="text-lg font-bold" id="nombreEmpresa">Nombre de la Empresa</h2>
+                <p id="direccionEmpresa">Dirección de la Empresa</p>
+                <p id="contactoEmpresa">Teléfono: +56 9 XXXX XXXX | Email: contacto@empresa.cl</p>
+            </div>
+            <div class="text-right">
+                <h1 class="text-2xl font-bold mb-2">ORDEN DE COMPRA</h1>
+                <p class="font-bold">Nº <span id="numeroOC" class="text-lg"></span></p>
+                <p>Fecha: <span id="fechaEmision"></span></p>
+            </div>
+        </div>
+        
+        <!-- Información General -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="border-all rounded p-4">
+                <h3 class="section-title">Información del Proveedor</h3>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Proveedor:</span> <span id="proveedor"></span></p>
+                    <p><span class="font-bold">RUT:</span> <span id="rut"></span></p>
+                    <p><span class="font-bold">Contacto:</span> <span id="contacto"></span></p>
+                    <p><span class="font-bold">Email:</span> <span id="email"></span></p>
+                    <p><span class="font-bold">Teléfono:</span> <span id="telefono"></span></p>
+                    <p><span class="font-bold">Dirección:</span> <span id="direccion"></span></p>
+                </div>
+            </div>
+            <div class="border-all rounded p-4">
+                <h3 class="section-title">Información de la Orden</h3>
+                <div class="space-y-2">
+                    <p><span class="font-bold">Departamento:</span> <span id="departamento"></span></p>
+                    <p><span class="font-bold">Solicitante:</span> <span id="solicitante"></span></p>
+                    <p><span class="font-bold">Fecha de Término:</span> <span id="fechaTermino"></span></p>
+                    <p><span class="font-bold">Condición de Pago:</span> <span id="condicionPago"></span></p>
+                    <p><span class="font-bold">Estado:</span> <span id="estado"></span></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detalle de Items -->
+        <div class="mb-6 border-all rounded">
+            <h3 class="section-title">Detalle de Items</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-bottom bg-gray-50">
+                            <th class="py-2 px-3 text-left">N°</th>
+                            <th class="py-2 px-3 text-left">Descripción</th>
+                            <th class="py-2 px-3 text-center">CECO</th>
+                            <th class="py-2 px-3 text-center">Cantidad</th>
+                            <th class="py-2 px-3 text-center">Unidad</th>
+                            <th class="py-2 px-3 text-right">Precio Unit.</th>
+                            <th class="py-2 px-3 text-right">Descuento</th>
+                            <th class="py-2 px-3 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTableBody">
+                        <!-- Los items se agregarán dinámicamente aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Totales -->
+        <div class="flex justify-end mb-8">
+            <div class="w-64">
+                <div class="flex justify-between py-2">
+                    <span class="font-bold">Subtotal:</span>
+                    <span id="subtotal">$0</span>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="font-bold">Descuento:</span>
+                    <span id="descuento">$0</span>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="font-bold">IVA (19%):</span>
+                    <span id="iva">$0</span>
+                </div>
+                <div class="flex justify-between py-2 border-top pt-2">
+                    <span class="font-bold text-lg">Total:</span>
+                    <span id="total" class="font-bold">$0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Términos y Condiciones -->
+        <div class="border-all rounded p-4 mb-8">
+            <h3 class="section-title">Términos y Condiciones</h3>
+            <ol class="list-decimal pl-5 space-y-2 text-sm">
+                <li>El proveedor deberá entregar los productos o servicios en los plazos establecidos.</li>
+                <li>La factura debe hacer referencia al número de esta orden de compra.</li>
+                <li>La empresa se reserva el derecho de rechazar productos o servicios que no cumplan con las especificaciones.</li>
+                <li>El pago se realizará según las condiciones acordadas una vez recibidos los productos o servicios a conformidad.</li>
+                <li>Cualquier modificación a esta orden debe ser acordada por escrito.</li>
+            </ol>
+        </div>
+        
+        <!-- Firmas -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="text-center">
+                <div class="border-bottom pb-4 mb-2 h-20 flex items-end justify-center">
+                    <span class="text-gray-400">Firma digital</span>
+                </div>
+                <p class="font-bold">Solicitante</p>
+                <p id="firmaSolicitante" class="text-sm"></p>
+            </div>
+            <div class="text-center">
+                <div class="border-bottom pb-4 mb-2 h-20 flex items-end justify-center">
+                    <span class="text-gray-400">Firma digital</span>
+                </div>
+                <p class="font-bold">Aprobado por</p>
+                <p id="firmaAprobador" class="text-sm">Departamento de Compras</p>
+            </div>
+            <div class="text-center">
+                <div class="border-bottom pb-4 mb-2 h-20 flex items-end justify-center">
+                    <span class="text-gray-400">Firma digital</span>
+                </div>
+                <p class="font-bold">Proveedor</p>
+                <p id="firmaProveedor" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+            if (!userData.username) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Obtener el ID de la orden de la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const ordenId = urlParams.get('id');
+            if (!ordenId) {
+                window.location.href = 'ordenes-compra.html';
+                return;
+            }
+            
+            // Cargar la orden
+            cargarOrden(ordenId);
+            
+            // Event listeners
+            document.getElementById('btnImprimir').addEventListener('click', function() {
+                window.print();
+            });
+            
+            document.getElementById('btnVolver').addEventListener('click', function() {
+                window.history.back();
+            });
+        });
+        
+        async function cargarOrden(id) {
+            try {
+                const response = await fetch(`/api/documentos/${id}`);
+                if (!response.ok) {
+                    throw new Error('Error al cargar la orden de compra');
+                }
+                
+                const orden = await response.json();
+                console.log('Orden cargada:', orden);
+                
+                // Llenar información general
+                document.getElementById('numeroOC').textContent = orden.numero || '';
+                document.getElementById('fechaEmision').textContent = formatearFecha(orden.fecha);
+                document.getElementById('fechaTermino').textContent = formatearFecha(orden.fecha_termino);
+                document.getElementById('condicionPago').textContent = orden.condicion_pago || '';
+                document.getElementById('departamento').textContent = orden.departamento || '';
+                document.getElementById('estado').textContent = formatearEstado(orden.estado);
+                document.getElementById('solicitante').textContent = orden.solicitante || '';
+                
+                // Llenar información del proveedor
+                document.getElementById('proveedor').textContent = orden.proveedor || '';
+                document.getElementById('rut').textContent = orden.rut || '';
+                document.getElementById('contacto').textContent = orden.contacto || '';
+                document.getElementById('email').textContent = orden.email || '';
+                document.getElementById('telefono').textContent = orden.telefono || '';
+                document.getElementById('direccion').textContent = orden.direccion || '';
+                
+                // Llenar items
+                const itemsTableBody = document.getElementById('itemsTableBody');
+                itemsTableBody.innerHTML = '';
+                
+                if (orden.items && orden.items.length > 0) {
+                    orden.items.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'item-row';
+                        tr.innerHTML = `
+                            <td class="py-2 px-3">${item.numero || ''}</td>
+                            <td class="py-2 px-3">${item.descripcion || ''}</td>
+                            <td class="py-2 px-3 text-center">${item.ceco || ''}</td>
+                            <td class="py-2 px-3 text-center">${item.cantidad || ''}</td>
+                            <td class="py-2 px-3 text-center">${item.unidad || ''}</td>
+                            <td class="py-2 px-3 text-right">$${formatearNumero(item.precio || 0)}</td>
+                            <td class="py-2 px-3 text-right">${item.descuento_porcentaje || 0}%</td>
+                            <td class="py-2 px-3 text-right">$${formatearNumero(item.total || 0)}</td>
+                        `;
+                        itemsTableBody.appendChild(tr);
+                    });
+                } else {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = '<td colspan="8" class="py-4 px-3 text-center">No hay items registrados</td>';
+                    itemsTableBody.appendChild(tr);
+                }
+                
+                // Llenar totales
+                document.getElementById('subtotal').textContent = '$' + formatearNumero(orden.subtotal || 0);
+                document.getElementById('descuento').textContent = '$' + formatearNumero(orden.descuento || 0);
+                document.getElementById('iva').textContent = '$' + formatearNumero(orden.iva || 0);
+                document.getElementById('total').textContent = '$' + formatearNumero(orden.total || 0);
+                
+                // Llenar firmas
+                document.getElementById('firmaSolicitante').textContent = orden.solicitante || '';
+                document.getElementById('firmaProveedor').textContent = orden.proveedor || '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar la orden de compra');
+            }
+        }
+        
+        function formatearFecha(fechaStr) {
+            if (!fechaStr) return '';
+            try {
+                const fecha = new Date(fechaStr);
+                return fecha.toLocaleDateString('es-CL');
+            } catch (e) {
+                return fechaStr;
+            }
+        }
+        
+        function formatearNumero(numero) {
+            return Number(numero).toLocaleString('es-CL');
+        }
+        
+        function formatearEstado(estado) {
+            if (!estado) return '';
+            const estados = {
+                'emitida': 'Emitida',
+                'aprobada': 'Aprobada',
+                'rechazada': 'Rechazada',
+                'completada': 'Completada'
+            };
+            return estados[estado.toLowerCase()] || estado;
+        }
+        
+        function mostrarError(mensaje) {
+            const alertaDiv = document.createElement('div');
+            alertaDiv.className = 'fixed top-4 right-4 p-4 rounded-lg shadow-lg bg-red-600 text-white flex items-center space-x-2 no-print';
+            alertaDiv.innerHTML = `
+                <span>${mensaje}</span>
+                <button onclick="this.parentElement.remove()" class="ml-4">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            document.body.appendChild(alertaDiv);
+            setTimeout(() => alertaDiv.remove(), 3000);
+        }
+ 

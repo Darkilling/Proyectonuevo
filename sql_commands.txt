@@ -1,0 +1,10 @@
+-- Comando para verificar las columnas existentes en la tabla items
+SELECT column_name FROM information_schema.columns WHERE table_name = 'items';
+
+-- Comandos para agregar las columnas faltantes
+ALTER TABLE items ADD COLUMN IF NOT EXISTS nombre VARCHAR(100);
+ALTER TABLE items ADD COLUMN IF NOT EXISTS ceco VARCHAR(20);
+ALTER TABLE items ADD COLUMN IF NOT EXISTS descuento_porcentaje NUMERIC(5,2) DEFAULT 0;
+ALTER TABLE items ADD COLUMN IF NOT EXISTS descuento_monto NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE items ADD COLUMN IF NOT EXISTS total NUMERIC(12,2);
+ALTER TABLE items ADD COLUMN IF NOT EXISTS numero INTEGER; 

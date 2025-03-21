@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ver Orden de Compra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            body {
+                background-color: white;
+                margin: 0;
+                padding: 0;
+                font-size: 12pt;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-only {
+                display: block !important;
+            }
+            
+            .print-container {
+                width: 100%;
+                padding: 20mm 15mm;
+            }
+            
+            .print-header {
+                text-align: center;
+                margin-bottom: 10mm;
+                border-bottom: 1px solid #ddd;
+                padding-bottom: 5mm;
+            }
+            
+            .print-title {
+                font-size: 18pt;
+                font-weight: bold;
+                margin-bottom: 2mm;
+            }
+            
+            .print-subtitle {
+                font-size: 14pt;
+                color: #666;
+            }
+            
+            .print-section {
+                margin-bottom: 8mm;
+                page-break-inside: avoid;
+            }
+            
+            .print-section-title {
+                font-size: 14pt;
+                font-weight: bold;
+                margin-bottom: 3mm;
+                color: #333;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 2mm;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 8mm;
+            }
+            
+            th {
+                background-color: #f3f4f6 !important;
+                color: #111 !important;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+                padding: 2mm;
+                font-weight: bold;
+            }
+            
+            td {
+                border-bottom: 1px solid #eee;
+                padding: 2mm;
+            }
+            
+            .print-footer {
+                text-align: center;
+                font-size: 10pt;
+                color: #666;
+                margin-top: 10mm;
+                border-top: 1px solid #ddd;
+                padding-top: 3mm;
+            }
+            
+            .grid-print {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 5mm;
+            }
+            
+            .info-label {
+                font-weight: bold;
+                color: #555;
+                font-size: 11pt;
+            }
+            
+            .info-value {
+                font-size: 12pt;
+                margin-bottom: 3mm;
+            }
+            
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+        
+        .print-only {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gray-800 text-white no-print">
+            <div class="p-4">
+                <div class="flex items-center space-x-2 mb-8">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <span id="userName" class="text-lg">Usuario</span>
+                </div>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded">
+                                <i class="fas fa-home"></i>
+                                <span>Inicio</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="solicitudes.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded">
+                                <i class="fas fa-file-alt"></i>
+                                <span>Solicitudes</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="ordenes-compra.html" class="flex items-center space-x-2 p-2 bg-blue-600 rounded">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Órdenes de Compra</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="login.html" class="flex items-center space-x-2 p-2 hover:bg-gray-700 rounded" id="cerrarSesion">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Cerrar Sesión</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6 no-print">
+                    <h1 class="text-2xl font-bold text-gray-800">Detalles de Orden de Compra</h1>
+                    <div class="flex space-x-3">
+                        <button id="btnEditar" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                            <i class="fas fa-edit"></i>
+                            <span>Editar</span>
+                        </button>
+                        <button id="btnImprimir" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
+                            <i class="fas fa-print"></i>
+                            <span>Imprimir</span>
+                        </button>
+                        <button id="btnVolver" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center space-x-2">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Volver</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Versión para pantalla -->
+                <div class="no-print">
+                    <!-- Información de la orden -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h2 class="text-lg font-medium text-gray-800">Información General</h2>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Número</p>
+                                    <p id="numeroOC" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Fecha de Emisión</p>
+                                    <p id="fechaEmision" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Estado</p>
+                                    <p id="estadoOC" class="mt-1"><span id="estadoBadge" class="px-2 py-1 text-xs font-medium rounded-full text-white"></span></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Solicitante</p>
+                                    <p id="solicitante" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Departamento</p>
+                                    <p id="departamento" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Fecha de Término</p>
+                                    <p id="fechaTermino" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del proveedor -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h2 class="text-lg font-medium text-gray-800">Información del Proveedor</h2>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Proveedor</p>
+                                    <p id="proveedor" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">RUT</p>
+                                    <p id="rut" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Contacto</p>
+                                    <p id="contacto" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Email</p>
+                                    <p id="email" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Teléfono</p>
+                                    <p id="telefono" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Dirección</p>
+                                    <p id="direccion" class="mt-1 text-lg font-medium text-gray-900"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de items -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h2 class="text-lg font-medium text-gray-800">Detalle de Items</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CECO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descuento</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itemsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Los items se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Totales -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                        <div class="px-6 py-4">
+                            <div class="flex justify-end">
+                                <div class="w-64">
+                                    <div class="flex justify-between py-2">
+                                        <span class="text-sm font-medium text-gray-600">Subtotal:</span>
+                                        <span id="subtotal" class="text-sm font-medium text-gray-900"></span>
+                                    </div>
+                                    <div class="flex justify-between py-2">
+                                        <span class="text-sm font-medium text-gray-600">Descuento:</span>
+                                        <span id="descuento" class="text-sm font-medium text-gray-900"></span>
+                                    </div>
+                                    <div class="flex justify-between py-2">
+                                        <span class="text-sm font-medium text-gray-600">IVA (19%):</span>
+                                        <span id="iva" class="text-sm font-medium text-gray-900"></span>
+                                    </div>
+                                    <div class="flex justify-between py-2 border-t border-gray-200">
+                                        <span class="text-base font-bold text-gray-800">Total:</span>
+                                        <span id="total" class="text-base font-bold text-gray-900"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Versión para impresión -->
+                <div class="print-only print-container">
+                    <div class="print-header">
+                        <div class="print-title">ORDEN DE COMPRA</div>
+                        <div class="print-subtitle" id="printNumeroOC"></div>
+                    </div>
+
+                    <div class="print-section">
+                        <div class="print-section-title">Información General</div>
+                        <div class="grid-print">
+                            <div>
+                                <div class="info-label">Fecha de Emisión:</div>
+                                <div class="info-value" id="printFechaEmision"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Fecha de Término:</div>
+                                <div class="info-value" id="printFechaTermino"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Estado:</div>
+                                <div class="info-value" id="printEstadoOC"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Solicitante:</div>
+                                <div class="info-value" id="printSolicitante"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Departamento:</div>
+                                <div class="info-value" id="printDepartamento"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="print-section">
+                        <div class="print-section-title">Información del Proveedor</div>
+                        <div class="grid-print">
+                            <div>
+                                <div class="info-label">Proveedor:</div>
+                                <div class="info-value" id="printProveedor"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">RUT:</div>
+                                <div class="info-value" id="printRut"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Contacto:</div>
+                                <div class="info-value" id="printContacto"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Email:</div>
+                                <div class="info-value" id="printEmail"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Teléfono:</div>
+                                <div class="info-value" id="printTelefono"></div>
+                            </div>
+                            <div>
+                                <div class="info-label">Dirección:</div>
+                                <div class="info-value" id="printDireccion"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="print-section">
+                        <div class="print-section-title">Detalle de Items</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Descripción</th>
+                                    <th>CECO</th>
+                                    <th>Cantidad</th>
+                                    <th>Unidad</th>
+                                    <th>Precio</th>
+                                    <th>Descuento</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="printItemsTableBody">
+                                <!-- Los items se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="print-section">
+                        <div style="display: flex; justify-content: flex-end;">
+                            <div style="width: 200px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <div class="info-label">Subtotal:</div>
+                                    <div id="printSubtotal"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <div class="info-label">Descuento:</div>
+                                    <div id="printDescuento"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <div class="info-label">IVA (19%):</div>
+                                    <div id="printIva"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding-top: 5px; border-top: 1px solid #ddd;">
+                                    <div style="font-weight: bold;">Total:</div>
+                                    <div style="font-weight: bold;" id="printTotal"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="print-footer">
+                        <p>Documento generado el <span id="printFechaGeneracion"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar autenticación
+            const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+            if (!userData.username) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Actualizar nombre de usuario
+            document.getElementById('userName').textContent = userData.username;
+
+            // Cargar orden
+            const urlParams = new URLSearchParams(window.location.search);
+            const ordenId = urlParams.get('id');
+            if (!ordenId) {
+                window.location.href = 'ordenes-compra.html';
+                return;
+            }
+
+            cargarOrden(ordenId);
+
+            // Event listeners
+            document.getElementById('btnEditar').addEventListener('click', function() {
+                window.location.href = `editar-oc.html?id=${ordenId}`;
+            });
+
+            document.getElementById('btnImprimir').addEventListener('click', function() {
+                window.print();
+            });
+
+            document.getElementById('btnVolver').addEventListener('click', function() {
+                window.location.href = 'ordenes-compra.html';
+            });
+
+            document.getElementById('cerrarSesion').addEventListener('click', function() {
+                sessionStorage.removeItem('userData');
+                window.location.href = 'login.html';
+            });
+        });
+
+        async function cargarOrden(id) {
+            try {
+                const response = await fetch(`/api/documentos/${id}`);
+                if (!response.ok) {
+                    throw new Error('Error al cargar la orden de compra');
+                }
+
+                const orden = await response.json();
+                console.log('Orden cargada:', orden);
+
+                // Función auxiliar para establecer texto de forma segura
+                function setTextContentSafely(id, value, defaultValue = '-') {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.textContent = value || defaultValue;
+                    } else {
+                        console.warn(`Elemento con ID "${id}" no encontrado`);
+                    }
+                }
+
+                // Llenar información general
+                setTextContentSafely('numeroOC', orden.numero);
+                setTextContentSafely('fechaEmision', formatearFecha(orden.fecha));
+                setTextContentSafely('solicitante', orden.solicitante);
+                setTextContentSafely('departamento', orden.departamento);
+                setTextContentSafely('fechaTermino', formatearFecha(orden.fecha_termino));
+
+                // Llenar información para versión impresa
+                setTextContentSafely('printNumeroOC', orden.numero);
+                setTextContentSafely('printFechaEmision', formatearFecha(orden.fecha));
+                setTextContentSafely('printSolicitante', orden.solicitante);
+                setTextContentSafely('printDepartamento', orden.departamento);
+                setTextContentSafely('printFechaTermino', formatearFecha(orden.fecha_termino));
+                setTextContentSafely('printFechaGeneracion', new Date().toLocaleDateString('es-ES'));
+
+                // Estado
+                setTextContentSafely('estadoOC', orden.estado);
+                setTextContentSafely('printEstadoOC', orden.estado);
+                const estadoBadge = document.getElementById('estadoBadge');
+                if (estadoBadge) {
+                    estadoBadge.textContent = orden.estado || '-';
+                    estadoBadge.classList.add(`bg-${getBadgeColor(orden.estado)}`);
+                }
+
+                // Llenar información del proveedor
+                setTextContentSafely('proveedor', orden.proveedor);
+                setTextContentSafely('rut', orden.rut);
+                setTextContentSafely('contacto', orden.contacto);
+                setTextContentSafely('email', orden.email);
+                setTextContentSafely('telefono', orden.telefono);
+                setTextContentSafely('direccion', orden.direccion);
+
+                // Llenar información del proveedor para versión impresa
+                setTextContentSafely('printProveedor', orden.proveedor);
+                setTextContentSafely('printRut', orden.rut);
+                setTextContentSafely('printContacto', orden.contacto);
+                setTextContentSafely('printEmail', orden.email);
+                setTextContentSafely('printTelefono', orden.telefono);
+                setTextContentSafely('printDireccion', orden.direccion);
+
+                // Llenar items
+                const itemsTableBody = document.getElementById('itemsTableBody');
+                const printItemsTableBody = document.getElementById('printItemsTableBody');
+                
+                if (itemsTableBody) {
+                    itemsTableBody.innerHTML = '';
+
+                    if (orden.items && orden.items.length > 0) {
+                        orden.items.forEach((item, index) => {
+                            const tr = document.createElement('tr');
+                            tr.className = 'hover:bg-gray-50';
+                            tr.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">${item.descripcion || '-'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.ceco || '-'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.cantidad || 0}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.unidad || '-'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$${formatearNumero(item.precio || 0)}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.descuento_porcentaje ? item.descuento_porcentaje + '%' : '-'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$${formatearNumero((item.precio || 0) * (item.cantidad || 0))}</td>
+                            `;
+                            itemsTableBody.appendChild(tr);
+                        });
+                    } else {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                                No hay items en esta orden de compra
+                            </td>
+                        `;
+                        itemsTableBody.appendChild(tr);
+                    }
+                }
+                
+                // Llenar items para versión impresa
+                if (printItemsTableBody) {
+                    printItemsTableBody.innerHTML = '';
+
+                    if (orden.items && orden.items.length > 0) {
+                        orden.items.forEach((item, index) => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${index + 1}</td>
+                                <td>${item.descripcion || '-'}</td>
+                                <td>${item.ceco || '-'}</td>
+                                <td>${item.cantidad || 0}</td>
+                                <td>${item.unidad || '-'}</td>
+                                <td>$${formatearNumero(item.precio || 0)}</td>
+                                <td>${item.descuento_porcentaje ? item.descuento_porcentaje + '%' : '-'}</td>
+                                <td>$${formatearNumero((item.precio || 0) * (item.cantidad || 0))}</td>
+                            `;
+                            printItemsTableBody.appendChild(tr);
+                        });
+                    } else {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td colspan="8" style="text-align: center; padding: 10px; color: #666;">
+                                No hay items en esta orden de compra
+                            </td>
+                        `;
+                        printItemsTableBody.appendChild(tr);
+                    }
+                } else {
+                    console.warn("Elemento 'printItemsTableBody' no encontrado");
+                }
+
+                // Calcular totales
+                const subtotal = orden.subtotal || (orden.items || []).reduce((acc, item) => acc + ((item.precio || 0) * (item.cantidad || 0)), 0);
+                const descuento = orden.descuento || 0;
+                const iva = orden.iva || ((subtotal - descuento) * 0.19);
+                const total = orden.total || (subtotal - descuento + iva);
+
+                // Mostrar totales
+                setTextContentSafely('subtotal', `$${formatearNumero(subtotal)}`);
+                setTextContentSafely('descuento', `$${formatearNumero(descuento)}`);
+                setTextContentSafely('iva', `$${formatearNumero(iva)}`);
+                setTextContentSafely('total', `$${formatearNumero(total)}`);
+
+                // Mostrar totales para versión impresa
+                setTextContentSafely('printSubtotal', `$${formatearNumero(subtotal)}`);
+                setTextContentSafely('printDescuento', `$${formatearNumero(descuento)}`);
+                setTextContentSafely('printIva', `$${formatearNumero(iva)}`);
+                setTextContentSafely('printTotal', `$${formatearNumero(total)}`);
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error al cargar la orden de compra: ' + error.message);
+            }
+        }
+
+        function formatearFecha(fecha) {
+            if (!fecha) return '-';
+            return new Date(fecha).toLocaleDateString('es-ES');
+        }
+
+        function formatearNumero(numero) {
+            if (numero === null || numero === undefined || isNaN(numero)) {
+                return "0";
+            }
+            return Number(numero).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function getBadgeColor(estado) {
+            const colores = {
+                'pendiente': 'yellow-500',
+                'emitida': 'blue-500',
+                'aprobada': 'green-500',
+                'rechazada': 'red-500',
+                'completada': 'indigo-500'
+            };
+            return colores[estado] || 'gray-500';
+        }
+
+        function mostrarError(mensaje) {
+            const alertaDiv = document.createElement('div');
+            alertaDiv.className = 'fixed top-4 right-4 p-4 rounded-lg shadow-lg bg-red-600 text-white flex items-center space-x-2';
+            alertaDiv.innerHTML = `
+                <span>${mensaje}</span>
+                <button onclick="this.parentElement.remove()" class="ml-4">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            document.body.appendChild(alertaDiv);
+            setTimeout(() => alertaDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html> 

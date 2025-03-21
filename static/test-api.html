@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de API</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+        <div class="relative py-3 sm:max-w-5xl sm:mx-auto">
+            <div class="relative px-4 py-10 bg-white mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex flex-col">
+                        <h1 class="text-2xl font-semibold mb-5">Prueba de API</h1>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-xl font-medium mb-3">Documentos</h2>
+                            <div class="space-y-3">
+                                <button id="btnTestTodos" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                    Probar GET /api/documentos/todos
+                                </button>
+                                <button id="btnTestOC" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ml-2">
+                                    Probar GET /api/documentos?tipo=oc
+                                </button>
+                                <button id="btnTestSP" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded ml-2">
+                                    Probar GET /api/documentos?tipo=sp
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-xl font-medium mb-3">Aprobaciones</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ID del Documento</label>
+                                    <input type="number" id="docId" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ingrese ID">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
+                                    <input type="text" id="usuario" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="admin" placeholder="Usuario">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+                                    <textarea id="comentarios" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ingrese comentarios"></textarea>
+                                </div>
+                                <div class="md:col-span-2 flex space-x-4">
+                                    <button id="btnAprobar" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                                        Aprobar Documento
+                                    </button>
+                                    <button id="btnRechazar" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                        Rechazar Documento
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h2 class="text-xl font-medium mb-3">Resultado</h2>
+                            <div id="resultado" class="border p-4 rounded bg-gray-50 max-h-96 overflow-auto">
+                                <pre>No hay resultados aún</pre>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h2 class="text-xl font-medium mb-3">Consola</h2>
+                            <div id="consola" class="border p-4 rounded bg-black text-green-400 font-mono text-sm max-h-40 overflow-auto">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Redirección de console.log para mostrar en nuestra consola
+        const consoleDiv = document.getElementById('consola');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+
+        console.log = function() {
+            const args = Array.from(arguments);
+            originalConsoleLog.apply(console, args);
+            const line = document.createElement('div');
+            line.textContent = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        console.error = function() {
+            const args = Array.from(arguments);
+            originalConsoleError.apply(console, args);
+            const line = document.createElement('div');
+            line.textContent = '❌ ERROR: ' + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+            line.classList.add('text-red-500');
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        // Funciones para probar las API
+        async function probarAPI(url, method = 'GET', body = null) {
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = '<div class="animate-pulse">Cargando...</div>';
+            
+            try {
+                console.log(`Probando ${method} ${url}...`);
+                const inicio = performance.now();
+                
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                const fin = performance.now();
+                const tiempoMs = Math.round(fin - inicio);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`Respuesta de ${method} ${url} (${tiempoMs}ms):`, data);
+                
+                resultadoDiv.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">${method} ${url}</span>
+                        <span class="text-sm text-gray-500">${tiempoMs}ms</span>
+                    </div>
+                    <pre class="whitespace-pre-wrap">${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                return { success: true, data, tiempoMs };
+            } catch (error) {
+                console.error(`Error al probar ${method} ${url}:`, error);
+                resultadoDiv.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                        <p class="font-bold">Error</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Función para aprobar/rechazar documento
+        async function procesarDocumento(accion) {
+            const docId = document.getElementById('docId').value;
+            const usuario = document.getElementById('usuario').value;
+            const comentarios = document.getElementById('comentarios').value;
+            
+            if (!docId) {
+                alert('Debe ingresar un ID de documento');
+                return;
+            }
+            
+            if (!usuario) {
+                alert('Debe ingresar un usuario');
+                return;
+            }
+            
+            if (!comentarios) {
+                alert('Debe ingresar comentarios');
+                return;
+            }
+            
+            const url = `/api/documentos/${docId}/${accion}`;
+            const body = {
+                usuario,
+                comentarios
+            };
+            
+            await probarAPI(url, 'POST', body);
+        }
+
+        // Event listeners
+        document.getElementById('btnTestTodos').addEventListener('click', () => {
+            probarAPI('/api/documentos/todos');
+        });
+        
+        document.getElementById('btnTestOC').addEventListener('click', () => {
+            probarAPI('/api/documentos?tipo=oc');
+        });
+        
+        document.getElementById('btnTestSP').addEventListener('click', () => {
+            probarAPI('/api/documentos?tipo=sp');
+        });
+        
+        document.getElementById('btnAprobar').addEventListener('click', () => {
+            procesarDocumento('aprobar');
+        });
+        
+        document.getElementById('btnRechazar').addEventListener('click', () => {
+            procesarDocumento('rechazar');
+        });
+
+        // Logs iniciales
+        console.log('Página de prueba de API cargada');
+        console.log('Usa los botones para probar diferentes endpoints');
+    </script>
+</body>
+</html> 

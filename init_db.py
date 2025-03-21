@@ -1,47 +1,78 @@
-from dotenv import load_dotenv
+#!/usr/bin/env python3
+import sqlite3
 import os
-from sqlalchemy import create_engine, text
-from sqlalchemy_utils import database_exists, create_database
-from app import app, db, Documento, Item, DocumentoAdjunto, Usuario
+from werkzeug.security import generate_password_hash
+from datetime import datetime
 
+# Obtener la ruta del archivo de base de datos
+DB_PATH = 'database.db'
+
+# Verificar si la carpeta uploads existe, si no, crearla
+if not os.path.exists('uploads'):
+    os.makedirs('uploads')
+
+# Verificar si la base de datos ya existe
 def init_db():
-    # Cargar variables de entorno
-    load_dotenv()
-
-    # Obtener credenciales de la base de datos
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = os.getenv('DB_PORT', '5432')
-    DB_NAME = os.getenv('DB_NAME', 'sistema_sp_oc')
-
-    # Construir URL de conexión
-    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
-    # Conectar a PostgreSQL
-    engine = create_engine(DATABASE_URL)
-
-    # Crear base de datos si no existe
-    if not database_exists(engine.url):
-        create_database(engine.url)
-
-    # Crear tablas dentro del contexto de la aplicación
-    with app.app_context():
-        # Crear todas las tablas
-        db.create_all()
+    # Conectar a la base de datos (la crea si no existe)
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    print("Inicializando base de datos...")
+    
+    # Ejecutar el archivo schema.sql
+    with open('schema.sql', 'r', encoding='utf-8') as f:
+        schema_sql = f.read()
+        cursor.executescript(schema_sql)
+    
+    print("Estructura de la base de datos creada correctamente.")
+    
+    # Insertar usuarios de prueba si no existen
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    if cursor.fetchone()[0] == 0:
+        print("Insertando usuarios de prueba...")
+        usuarios = [
+            ('admin', generate_password_hash('admin123'), 'Administrador', 'Sistema', 'admin@example.com', 'admin'),
+            ('compras', generate_password_hash('compras123'), 'Usuario', 'Compras', 'compras@example.com', 'compras'),
+            ('comprador', generate_password_hash('comprador123'), 'Usuario', 'Comprador', 'comprador@example.com', 'comprador'),
+            ('operacion', generate_password_hash('operacion123'), 'Usuario', 'Operación', 'operacion@example.com', 'operacion'),
+            ('aprobador', generate_password_hash('aprobador123'), 'Usuario', 'Aprobador', 'aprobador@example.com', 'aprobador')
+        ]
         
-        # Crear usuario de prueba si no existe
-        if not Usuario.query.filter_by(username='admin').first():
-            usuario_prueba = Usuario(
-                username='admin',
-                password='admin123',  # En producción, usar hash de contraseñas
-                tipo='admin'
-            )
-            db.session.add(usuario_prueba)
-            db.session.commit()
-            print("✅ Usuario de prueba creado")
+        cursor.executemany(
+            "INSERT INTO usuarios (username, password, nombre, apellido, email, role) VALUES (?, ?, ?, ?, ?, ?)",
+            usuarios
+        )
+        print(f"Se insertaron {len(usuarios)} usuarios de prueba.")
+    
+    # Insertar proveedores de prueba si no existen
+    cursor.execute("SELECT COUNT(*) FROM proveedores")
+    if cursor.fetchone()[0] == 0:
+        print("Insertando proveedores de prueba...")
+        proveedores = [
+            ('76.123.456-7', 'Ferretería El Martillo', 'Juan Pérez', '+56912345678', 'contacto@elmartillo.cl', 'Av. Principal 123, Santiago'),
+            ('77.987.654-3', 'Materiales Construcción SpA', 'María Rodríguez', '+56998765432', 'ventas@matcons.cl', 'Calle Comercial 456, Concepción'),
+            ('78.555.666-8', 'Servicios Técnicos Ltda.', 'Pedro Soto', '+56987654321', 'servicios@stecnicos.cl', 'Pasaje Industrial 789, Valparaíso')
+        ]
         
-        print("✅ Base de datos inicializada correctamente")
+        cursor.executemany(
+            "INSERT INTO proveedores (rut, nombre, contacto, telefono, email, direccion) VALUES (?, ?, ?, ?, ?, ?)",
+            proveedores
+        )
+        print(f"Se insertaron {len(proveedores)} proveedores de prueba.")
+    
+    # Confirmar cambios y cerrar conexión
+    conn.commit()
+    conn.close()
+    
+    print("Base de datos inicializada correctamente.")
 
-if __name__ == '__main__':
-    init_db() 
+if __name__ == "__main__":
+    if os.path.exists(DB_PATH):
+        respuesta = input(f"La base de datos {DB_PATH} ya existe. ¿Desea sobrescribirla? (s/n): ")
+        if respuesta.lower() == 's':
+            os.remove(DB_PATH)
+            init_db()
+        else:
+            print("Operación cancelada.")
+    else:
+        init_db() 

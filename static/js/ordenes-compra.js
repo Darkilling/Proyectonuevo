@@ -21,6 +21,17 @@ document.addEventListener('DOMContentLoaded', function() {
         aplicarFiltros();
     });
 
+    // Evento para filtros de fecha y estado
+    document.getElementById('estado').addEventListener('change', aplicarFiltros);
+    document.getElementById('fechaDesde').addEventListener('change', aplicarFiltros);
+    document.getElementById('fechaHasta').addEventListener('change', aplicarFiltros);
+
+    // Evento para cerrar sesión
+    document.getElementById('cerrarSesion').addEventListener('click', function() {
+        sessionStorage.removeItem('userData');
+        window.location.href = 'login.html';
+    });
+
     // Función para cargar documentos
     async function cargarDocumentos() {
         try {
@@ -90,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                    No se encontraron documentos que coincidan con los filtros
+                    No se encontraron órdenes de compra que coincidan con los filtros
                 </td>
             `;
             tbody.appendChild(tr);
@@ -113,45 +124,86 @@ document.addEventListener('DOMContentLoaded', function() {
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button onclick="editarDocumento(${doc.id})" class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">
-                        <i class="fas fa-edit"></i> Editar
+                    <button class="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 ver-documento" data-id="${doc.id}">
+                        <i class="fas fa-eye"></i>
                     </button>
-                    <button onclick="confirmarEliminacion(${doc.id})" class="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700">
-                        <i class="fas fa-trash"></i> Eliminar
+                    <button class="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 editar-documento" data-id="${doc.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 eliminar-documento" data-id="${doc.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 imprimir-documento" data-id="${doc.id}">
+                        <i class="fas fa-print"></i>
                     </button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
+
+        // Agregar eventos a los botones
+        document.querySelectorAll('.ver-documento').forEach(btn => {
+            btn.addEventListener('click', () => verDocumento(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.editar-documento').forEach(btn => {
+            btn.addEventListener('click', () => editarDocumento(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.eliminar-documento').forEach(btn => {
+            btn.addEventListener('click', () => confirmarEliminacion(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.imprimir-documento').forEach(btn => {
+            btn.addEventListener('click', () => imprimirDocumento(btn.getAttribute('data-id')));
+        });
     }
 
-    // Función para eliminar documento
+    // Funciones para acciones CRUD
+    function verDocumento(id) {
+        window.location.href = `ver-oc.html?id=${id}`;
+    }
+
+    function editarDocumento(id) {
+        window.location.href = `editar-oc.html?id=${id}`;
+    }
+
+    function confirmarEliminacion(id) {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.remove('hidden');
+
+        document.getElementById('confirmDelete').onclick = () => eliminarDocumento(id);
+        document.getElementById('cancelDelete').onclick = () => {
+            modal.classList.add('hidden');
+        };
+    }
+
     async function eliminarDocumento(id) {
         try {
-            const modal = document.getElementById('deleteModal');
-            modal.classList.remove('hidden');
-
-            document.getElementById('confirmDelete').onclick = async () => {
-                const response = await fetch(`/api/documentos/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Error al eliminar el documento');
+            const response = await fetch(`/api/documentos/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
+            });
 
-                modal.classList.add('hidden');
-                mostrarMensaje('Documento eliminado exitosamente', 'success');
-                cargarDocumentos();
-            };
+            if (!response.ok) {
+                throw new Error('Error al eliminar la orden de compra');
+            }
 
-            document.getElementById('cancelDelete').onclick = () => {
-                modal.classList.add('hidden');
-            };
+            document.getElementById('deleteModal').classList.add('hidden');
+            mostrarMensaje('Orden de compra eliminada exitosamente', 'success');
+            
+            // Recargar documentos
+            cargarDocumentos();
         } catch (error) {
             console.error('Error:', error);
-            mostrarError('Error al eliminar el documento');
+            mostrarError('Error al eliminar la orden de compra: ' + error.message);
         }
+    }
+
+    function imprimirDocumento(id) {
+        window.open(`imprimir-oc.html?id=${id}`, '_blank');
     }
 
     // Funciones auxiliares
@@ -162,40 +214,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getBadgeColor(estado) {
         const colores = {
-            'pendiente': 'blue-600',
-            'aprobado': 'green-600',
-            'rechazado': 'red-600'
+            'pendiente': 'yellow-500',
+            'emitida': 'blue-500',
+            'aprobada': 'green-500',
+            'rechazada': 'red-500',
+            'completada': 'indigo-500'
         };
-        return colores[estado] || 'blue-600';
+        return colores[estado] || 'gray-500';
     }
 
     function mostrarMensaje(mensaje, tipo) {
-        const alerta = document.createElement('div');
-        alerta.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+        const alertaDiv = document.createElement('div');
+        alertaDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
             tipo === 'success' ? 'bg-green-600' : 'bg-red-600'
         } text-white flex items-center space-x-2`;
-        alerta.innerHTML = `
+        alertaDiv.innerHTML = `
             <span>${mensaje}</span>
             <button onclick="this.parentElement.remove()" class="ml-4">
                 <i class="fas fa-times"></i>
             </button>
         `;
-        document.body.appendChild(alerta);
-        setTimeout(() => alerta.remove(), 3000);
+        document.body.appendChild(alertaDiv);
+        setTimeout(() => alertaDiv.remove(), 3000);
     }
 
     function mostrarError(mensaje) {
         mostrarMensaje(mensaje, 'error');
     }
 
-    // Funciones globales
-    window.editarDocumento = function(id) {
-        window.location.href = `editar-oc.html?id=${id}`;
-    };
-
-    window.confirmarEliminacion = function(id) {
-        eliminarDocumento(id);
-    };
-
+    // Exportar funciones para poder usarlas globalmente
     window.aplicarFiltros = aplicarFiltros;
 }); 

@@ -6,6 +6,15 @@
     <title>Nueva Solicitud de Pedido</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .item-row {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
@@ -83,46 +92,123 @@
                         </div>
                     </div>
 
+                    <!-- Datos del Proveedor (común para ambos tipos) -->
+                    <div id="datosProveedor" class="mb-6 border-t border-gray-200 pt-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Datos del Proveedor</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">RUT Proveedor</label>
+                                <input type="text" id="rutProveedor" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre/Razón Social</label>
+                                <input type="text" id="nombreProveedor" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Estimada Entrega</label>
+                                <input type="date" id="fechaEntrega" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Campos para Servicio -->
-                    <div id="camposServicio" class="hidden mb-6">
+                    <div id="camposServicio" class="hidden mb-6 border-t border-gray-200 pt-6">
                         <h2 class="text-lg font-semibold text-gray-800 mb-4">Información del Servicio</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">RUT</label>
-                                <input type="text" id="rut" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
-                                <input type="text" id="razonSocial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Jefe de Proyecto</label>
                                 <input type="text" id="jefeProyecto" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Condición de Pago</label>
+                                <select id="condicionPago" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="30">30 días</option>
+                                    <option value="45">45 días</option>
+                                    <option value="60">60 días</option>
+                                    <option value="90">90 días</option>
+                                    <option value="contado">Contado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio Servicio</label>
+                                <input type="date" id="fechaInicioServicio" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Fin Servicio</label>
+                                <input type="date" id="fechaFinServicio" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción del Servicio</label>
+                                <textarea id="descripcionServicio" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Checklist de Servicio -->
+                        <div class="mt-6">
+                            <h3 class="text-md font-medium text-gray-700 mb-3">Checklist de Servicio</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="checklist1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="checklist1" class="ml-2 block text-sm text-gray-700">Servicio realizado según especificaciones</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="checklist2" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="checklist2" class="ml-2 block text-sm text-gray-700">Documentación completa entregada</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="checklist3" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="checklist3" class="ml-2 block text-sm text-gray-700">Certificaciones requeridas presentadas</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="checklist4" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="checklist4" class="ml-2 block text-sm text-gray-700">Inspección de calidad realizada</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Listado de Servicios -->
+                        <div class="mt-6">
+                            <h3 class="text-md font-medium text-gray-700 mb-3">Listado de Servicios</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" id="servicio1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="servicio1" class="block text-sm text-gray-700">Mantenimiento Preventivo</label>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" id="servicio2" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="servicio2" class="block text-sm text-gray-700">Mantenimiento Correctivo</label>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" id="servicio3" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="servicio3" class="block text-sm text-gray-700">Instalación</label>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" id="servicio4" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="servicio4" class="block text-sm text-gray-700">Consultoría</label>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" id="servicio5" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <label for="servicio5" class="block text-sm text-gray-700">Capacitación</label>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Campos para Material -->
-                    <div id="camposMaterial" class="hidden mb-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Información del Material</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                                <input type="text" id="nombreMaterial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                                <input type="number" id="cantidad" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">CECO</label>
-                                <input type="text" id="cecoMaterial" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                                <textarea id="descripcion" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                            </div>
+                    <div id="camposMaterial" class="hidden mb-6 border-t border-gray-200 pt-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Lista de Materiales</h2>
+                        
+                        <div id="items-container" class="space-y-4">
+                            <!-- Los materiales se agregarán aquí dinámicamente -->
                         </div>
+                        
+                        <div class="mt-4">
+                            <button type="button" id="addItem" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                                <i class="fas fa-plus"></i>
+                                <span>Agregar Material</span>
+                            </button>
+                        </div>
+                        
                         <div class="mt-4">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Adjuntar Documento</label>
                             <div class="flex items-center space-x-4">

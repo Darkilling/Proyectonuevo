@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando página...');
+    
     // Verificar autenticación
     const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
     if (!userData.username) {
+        console.log('Usuario no autenticado, redirigiendo a login');
         window.location.href = '/login';
         return;
     }
@@ -11,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Obtener el rol del usuario (normalizamos el tipo/rol a 'comprador')
     const userRole = (userData.role || userData.type || '').toLowerCase();
+    console.log('Rol de usuario:', userRole);
     
     // Mostrar secciones según el rol
     document.querySelectorAll('[data-role]').forEach(element => {
@@ -60,28 +64,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Función para formatear la fecha
     function formatDate(dateString) {
+        try {
         return new Date(dateString).toLocaleDateString('es-CL');
+        } catch (e) {
+            console.error('Error al formatear fecha:', e);
+            return 'Fecha no disponible';
+        }
     }
 
     // Función para crear un elemento de documento reciente
     function createDocumentItem(doc, canCreateOC = false) {
+        console.log('Creando elemento para documento:', doc.id, doc.tipo, doc.numero);
+        
         const item = document.createElement('div');
         item.className = 'document-item';
         
+        // Verificar que los datos necesarios existen
+        if (!doc.tipo || !doc.numero) {
+            console.error('Documento con datos incompletos:', doc);
+            return item; // Devolver un elemento vacío
+        }
+        
         // Determinar el título basado en el tipo de documento
         const titulo = doc.tipo === 'sp' ? 
-            `Solicitud de ${doc.departamento}` : 
-            `Orden de Compra - ${doc.proveedor}`;
+            `Solicitud de ${doc.departamento || 'No especificado'}` : 
+            `Orden de Compra - ${doc.proveedor || 'No especificado'}`;
+
+        // Manejo seguro de la fecha
+        let fechaFormateada = 'Fecha no disponible';
+        try {
+            if (doc.fecha) {
+                fechaFormateada = formatDate(doc.fecha);
+            }
+        } catch (e) {
+            console.error('Error al formatear fecha:', e);
+        }
+
+        // Manejo seguro del total
+        let totalFormateado = '';
+        try {
+            if (doc.total !== null && doc.total !== undefined) {
+                totalFormateado = `<p>Total: $${Number(doc.total).toLocaleString('es-CL')}</p>`;
+            }
+        } catch (e) {
+            console.error('Error al formatear total:', e);
+        }
 
         item.innerHTML = `
             <div class="document-info">
                 <h4>${doc.tipo.toUpperCase()} - ${doc.numero}</h4>
                 <p>${titulo}</p>
-                <p>Fecha: ${formatDate(doc.fecha)}</p>
-                ${doc.total ? `<p>Total: $${doc.total.toLocaleString('es-CL')}</p>` : ''}
+                <p>Fecha: ${fechaFormateada}</p>
+                ${totalFormateado}
             </div>
-            <span class="document-status status-${doc.estado}">
-                ${doc.estado.charAt(0).toUpperCase() + doc.estado.slice(1)}
+            <span class="document-status status-${doc.estado || 'desconocido'}">
+                ${doc.estado ? (doc.estado.charAt(0).toUpperCase() + doc.estado.slice(1)) : 'Desconocido'}
             </span>
             ${canCreateOC && doc.tipo === 'sp' && doc.estado === 'pendiente' ? 
                 `<button class="btn btn-primary crear-oc" data-sp-id="${doc.id}">Crear OC</button>` : ''}
@@ -90,15 +127,18 @@ document.addEventListener('DOMContentLoaded', function() {
         // Si puede crear OC y es una SP pendiente, agregar evento para crear OC
         if (canCreateOC && doc.tipo === 'sp' && doc.estado === 'pendiente') {
             const crearOCBtn = item.querySelector('.crear-oc');
-            crearOCBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.location.href = `nueva-oc.html?sp_id=${doc.id}`;
-            });
+            if (crearOCBtn) {
+                crearOCBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.location.href = `nueva-oc.html?sp_id=${doc.id}`;
+                });
+            }
         }
 
         // Agregar evento de clic para ver detalles
         item.addEventListener('click', () => {
-            window.location.href = `aprobaciones.html?id=${doc.id}`;
+            const url = doc.tipo === 'oc' ? `ver-oc.html?id=${doc.id}` : `aprobaciones.html?id=${doc.id}`;
+            window.location.href = url;
         });
 
         return item;
@@ -107,16 +147,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para cargar documentos desde la API
     async function cargarDocumentos() {
         try {
+            console.log('Iniciando carga de documentos...');
             const response = await fetch('/api/documentos/todos');
+            console.log('Respuesta recibida:', response.status);
+            
             if (!response.ok) {
+                console.error('Error en respuesta:', await response.text());
                 throw new Error('Error al cargar documentos');
             }
+            
             const documentos = await response.json();
+            console.log('Documentos cargados:', documentos.length, documentos);
             
             // Limpiar listas
-            recentDocumentsList.innerHTML = '';
+            if (recentDocumentsList) {
+                recentDocumentsList.innerHTML = '';
+            } else {
+                console.error('No se encontró el elemento recentDocuments');
+            }
+            
             if (pendientesSPList) {
                 pendientesSPList.innerHTML = '';
+            }
+            
+            if (documentos.length === 0) {
+                if (recentDocumentsList) {
+                    recentDocumentsList.innerHTML = '<p>No hay documentos disponibles.</p>';
+                }
+                console.log('No hay documentos para mostrar');
+                return;
             }
             
             // Ordenar documentos por fecha (más recientes primero)
@@ -124,26 +183,38 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Si es usuario de compras o admin, mostrar las SP pendientes en una sección separada
             const canCreateOC = userRole === 'compras' || userRole === 'admin';
+            const pendientesSPSection = document.getElementById('pendientesSPSection');
+            
             if (canCreateOC && pendientesSPList) {
                 const spPendientes = documentos.filter(doc => 
                     doc.tipo === 'sp' && doc.estado === 'pendiente'
                 );
                 
-                if (spPendientes.length > 0) {
-                    document.getElementById('pendientesSPSection').style.display = 'block';
-                    spPendientes.forEach(doc => {
-                        pendientesSPList.appendChild(createDocumentItem(doc, true));
-                    });
+                if (pendientesSPSection) {
+                    if (spPendientes.length > 0) {
+                        pendientesSPSection.style.display = 'block';
+                        spPendientes.forEach(doc => {
+                            pendientesSPList.appendChild(createDocumentItem(doc, true));
+                        });
+                    } else {
+                        pendientesSPSection.style.display = 'none';
+                    }
                 }
             }
             
             // Mostrar todos los documentos en la lista principal
             documentos.forEach(doc => {
-                recentDocumentsList.appendChild(createDocumentItem(doc, canCreateOC));
+                if (recentDocumentsList) {
+                    recentDocumentsList.appendChild(createDocumentItem(doc, canCreateOC));
+                }
             });
+            
+            console.log('Documentos mostrados correctamente');
         } catch (error) {
-            console.error('Error:', error);
-            recentDocumentsList.innerHTML = '<p class="error-message">Error al cargar los documentos</p>';
+            console.error('Error en cargarDocumentos:', error);
+            if (recentDocumentsList) {
+                recentDocumentsList.innerHTML = '<p class="error-message">Error al cargar los documentos: ' + error.message + '</p>';
+            }
         }
     }
 
@@ -241,19 +312,31 @@ async function cargarUltimasOC() {
         
         const activityList = document.getElementById('activityList');
         if (activityList) {
-            activityList.innerHTML = ordenes.map(oc => `
-                <div class="activity-item">
-                    <div class="activity-content">
-                        <div class="activity-title">${oc.numero}</div>
-                        <div class="activity-meta">
-                            <span class="activity-user">${oc.creado_por}</span>
-                            <span class="activity-date">${new Date(oc.fecha).toLocaleString()}</span>
+            if (ordenes.length === 0) {
+                activityList.innerHTML = '<p>No hay órdenes de compra recientes.</p>';
+                return;
+            }
+            
+            activityList.innerHTML = ordenes.map(oc => {
+                const fechaFormateada = oc.fecha ? new Date(oc.fecha).toLocaleString() : 'Fecha no disponible';
+                return `
+                    <div class="activity-item">
+                        <div class="activity-content">
+                            <div class="activity-title">${oc.numero}</div>
+                            <div class="activity-meta">
+                                <span class="activity-user">${oc.solicitante || 'Usuario no especificado'}</span>
+                                <span class="activity-date">${fechaFormateada}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
     } catch (error) {
         console.error('Error:', error);
+        const activityList = document.getElementById('activityList');
+        if (activityList) {
+            activityList.innerHTML = '<p class="error-message">Error al cargar órdenes de compra</p>';
+        }
     }
 } 

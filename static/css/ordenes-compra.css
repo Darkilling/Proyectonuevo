@@ -1,0 +1,42 @@
+/* Estilos personalizados para la página de órdenes de compra */
+
+/* Ajustar tamaño del contenedor principal para evitar scroll horizontal */
+.container {
+    max-width: 100%;
+}
+
+/* Estilos para la tabla y scrolling horizontal en dispositivos pequeños */
+@media screen and (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+
+/* Estilo para la barra lateral en dispositivos móviles */
+@media screen and (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+}
+
+/* Asegurar que los iconos de acciones tengan el mismo tamaño */
+.fas {
+    width: 1em;
+    text-align: center;
+}
+
+/* Estilo para los botones de acción */
+button.bg-blue-600,
+button.bg-green-600,
+button.bg-red-600,
+button.bg-purple-600 {
+    transition: all 0.2s ease;
+    min-width: 2.5rem;
+}
+
+/* Asegurar que el modal de eliminación esté por encima de otros elementos */
+#deleteModal {
+    z-index: 50;
+} 
