@@ -3,77 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios - Sistema SP/OC</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/usuarios.css">
+    <title>Gestión de Usuarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <header class="main-header">
-            <div class="user-info">
-                <span id="userName"></span>
-                <button class="btn btn-link" onclick="auth.logout()">Cerrar Sesión</button>
-            </div>
-            <h1>Gestión de Usuarios</h1>
-            <a href="index.html" class="btn btn-secondary">Volver al Inicio</a>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Gestión de Usuarios</h1>
+            <button id="addUserBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                Agregar Usuario
+            </button>
         </header>
 
-        <div class="users-section">
-            <div class="users-header">
-                <h2>Usuarios del Sistema</h2>
-                <button class="btn btn-primary" id="addUserBtn">Agregar Usuario</button>
-            </div>
-
-            <div class="users-list" id="usersList">
-                <!-- Los usuarios se cargarán aquí dinámicamente -->
-            </div>
-        </div>
-
-        <!-- Modal para agregar/editar usuario -->
-        <div id="userModal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2 id="modalTitle">Agregar Usuario</h2>
-                <form id="userForm">
-                    <div class="form-group">
-                        <label for="username">Usuario:</label>
-                        <input type="text" id="username" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="name">Nombre Completo:</label>
-                        <input type="text" id="name" name="name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Contraseña:</label>
-                        <input type="password" id="password" name="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="userType">Tipo de Usuario:</label>
-                        <select id="userType" name="userType" required>
-                            <option value="">Seleccione un tipo...</option>
-                            <option value="operacion">Operación</option>
-                            <option value="compras">Compras</option>
-                            <option value="aprobador">Aprobador</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancelar</button>
-                    </div>
-                </form>
-            </div>
+        <div id="usersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Los usuarios se cargarán dinámicamente aquí -->
         </div>
     </div>
-    <script src="js/auth.js"></script>
+
+    <!-- Modal para agregar/editar usuario -->
+    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md mx-auto mt-20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modalTitle" class="text-2xl font-bold text-gray-800">Agregar Usuario</h2>
+                <span class="close text-2xl cursor-pointer text-gray-500 hover:text-gray-700">&times;</span>
+            </div>
+            <form id="userForm" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Usuario:</label>
+                    <input type="text" id="username" name="username" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Contraseña:</label>
+                    <input type="password" id="password" name="password" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Nombre:</label>
+                    <input type="text" id="name" name="name" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="apellido" class="block text-sm font-medium text-gray-700">Apellido:</label>
+                    <input type="text" id="apellido" name="apellido" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email:</label>
+                    <input type="email" id="email" name="email"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="userType" class="block text-sm font-medium text-gray-700">Tipo de Usuario:</label>
+                    <select id="userType" name="userType" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="user">Usuario</option>
+                        <option value="aprobador">Aprobador</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelBtn" 
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button" id="submitBtn"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/usuarios.js"></script>
-    <script>
-        // Verificar que solo el administrador pueda acceder
-        document.addEventListener('DOMContentLoaded', function() {
-            if (!auth.checkPermissions(['admin'])) {
-                window.location.href = 'index.html';
-            }
-            auth.updateUserInterface();
-        });
-    </script>
 </body>
 </html> 

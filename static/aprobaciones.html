@@ -4,89 +4,199 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aprobaciones - Sistema de Gestión</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/aprobaciones.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="css/aprobaciones.css">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo-container">
-                <img src="img/logo.png" alt="Logo de la empresa">
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="header bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-4">
+                    <img src="img/logo.png" alt="Logo de la empresa" class="h-12">
+                    <h1 class="header-title">Gestión de Aprobaciones</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button id="notificaciones-btn" class="text-gray-600 hover:text-gray-800 relative">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span id="notificaciones-contador" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" style="display: none;">0</span>
+                        </button>
+                        <div id="notificaciones-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50">
+                            <div class="p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-800">Notificaciones</h3>
+                            </div>
+                            <div id="notificaciones-container" class="max-h-96 overflow-y-auto">
+                                <!-- Las notificaciones se cargarán aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    <span id="userName" class="text-gray-600"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
             </div>
-            <h1>Gestión de Aprobaciones</h1>
-            <div class="user-info">
-                <span id="userName"></span>
-                <button class="btn-link" onclick="logout()">Cerrar Sesión</button>
+            <div class="header-actions mt-4">
+                <button onclick="window.location.href='/'" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Volver al Inicio</span>
+                </button>
             </div>
         </header>
 
-        <div class="filters-section">
-            <div class="filter-group">
-                <label for="tipoDocumento">Tipo de documento:</label>
-                <select id="tipoDocumento">
+        <!-- Filtros -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="filter-group grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="tipoDocumento" class="block text-sm font-medium text-gray-700 mb-1">Tipo de documento:</label>
+                    <select id="tipoDocumento" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     <option value="todos">Todos</option>
                     <option value="sp">Solicitudes de Pedido</option>
                     <option value="oc">Órdenes de Compra</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label for="estado">Estado:</label>
-                <select id="estado">
+                <div>
+                    <label for="estado" class="block text-sm font-medium text-gray-700 mb-1">Estado:</label>
+                    <select id="estado" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="todos">Todos</option>
                     <option value="pendiente">Pendiente</option>
                     <option value="aprobado">Aprobado</option>
                     <option value="rechazado">Rechazado</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label for="fechaDesde">Desde:</label>
-                <input type="date" id="fechaDesde">
-            </div>
-            <div class="filter-group">
-                <label for="fechaHasta">Hasta:</label>
-                <input type="date" id="fechaHasta">
-            </div>
-            <button class="btn btn-primary" id="aplicarFiltros">Aplicar Filtros</button>
-        </div>
-
-        <div class="documents-container">
-            <div class="document-list">
-                <!-- Las tarjetas de documentos se generarán dinámicamente -->
-            </div>
-        </div>
-
-        <!-- Modal de Aprobación -->
-        <div class="modal" id="approvalModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Revisar Documento</h2>
-                    <button class="close-modal">&times;</button>
+                <div>
+                    <label for="fechaDesde" class="block text-sm font-medium text-gray-700 mb-1">Desde:</label>
+                    <input type="date" id="fechaDesde" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-                <div class="modal-body">
-                    <div class="document-details">
-                        <!-- Los detalles del documento se cargarán dinámicamente -->
+                <div>
+                    <label for="fechaHasta" class="block text-sm font-medium text-gray-700 mb-1">Hasta:</label>
+                    <input type="date" id="fechaHasta" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-4">
+                <button id="limpiarFiltros" class="action-button bg-gray-500 text-white hover:bg-gray-600">
+                    <i class="fas fa-undo"></i>
+                    Limpiar Filtros
+                </button>
+                <button id="aplicarFiltros" class="action-button bg-blue-600 text-white hover:bg-blue-700">
+                    <i class="fas fa-filter"></i>
+                    Aplicar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de Documentos -->
+        <div id="documents-container" class="space-y-4">
+            <!-- Los documentos se mostrarán aquí -->
+        </div>
+
+        <!-- Modal -->
+        <div id="documentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 id="modalDocumentTitle" class="text-2xl font-bold text-gray-800">Revisar Documento</h2>
+                            <div id="documentStatus" class="mt-1"></div>
+                </div>
+                        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
                     </div>
-                    <div class="approval-form" style="display: block;">
-                        <div class="form-group">
-                            <label for="comentarios">Comentarios:</label>
-                            <textarea id="comentarios" rows="4"></textarea>
+                </div>
+                <div class="p-6">
+                    <div class="document-details mb-6">
+                        <!-- Información del documento -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-3">Información General</h3>
+                                <div class="space-y-2">
+                                    <p id="modalDocumentDate" class="flex justify-between">
+                                        <span class="text-gray-600">Fecha:</span>
+                                        <span class="font-medium"></span>
+                                    </p>
+                                    <p id="modalDocumentDepartment" class="flex justify-between">
+                                        <span class="text-gray-600">Departamento:</span>
+                                        <span class="font-medium"></span>
+                                    </p>
+                                    <p id="modalDocumentRequester" class="flex justify-between">
+                                        <span class="text-gray-600">Solicitante:</span>
+                                        <span class="font-medium"></span>
+                                    </p>
+                                    <p id="modalDocumentSupplier" class="flex justify-between">
+                                        <span class="text-gray-600">Proveedor:</span>
+                                        <span class="font-medium"></span>
+                                    </p>
+                                    <p id="modalDocumentTotal" class="flex justify-between text-lg font-bold text-green-600">
+                                        <span>Total:</span>
+                                        <span></span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-3">Historial de Aprobaciones</h3>
+                                <div id="modalApprovalHistory" class="space-y-2">
+                                    <!-- El historial de aprobaciones se cargará aquí -->
+                                </div>
+                            </div>
                         </div>
-                        <div class="approval-actions">
-                            <button class="btn btn-success" id="aprobar">Aprobar</button>
-                            <button class="btn btn-danger" id="rechazar">Rechazar</button>
-                            <button class="btn btn-secondary" id="cancelar">Cancelar</button>
-                            <button class="btn btn-primary" id="exportarPDF">
-                                <i class="fas fa-file-pdf"></i> Exportar PDF
-                            </button>
+
+                        <!-- Tabla de items -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden mt-6">
+                            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-800">Ítems</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <tbody id="modalItemsTable" class="bg-white divide-y divide-gray-200">
+                                        <!-- Los items se cargarán aquí -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+                    </div>
+                    <div class="approval-form">
+                        <form id="approvalForm" class="space-y-4">
+                            <div>
+                                <label for="comentarios" class="block text-sm font-medium text-gray-700 mb-1">Comentarios:</label>
+                                <textarea id="comentarios" rows="4" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="cancelarBtn" class="action-button bg-gray-500 text-white hover:bg-gray-600">
+                                    <i class="fas fa-times"></i>
+                                    Cancelar
+                                </button>
+                                <button type="button" id="exportarPDFBtn" class="action-button bg-blue-600 text-white hover:bg-blue-700">
+                                    <i class="fas fa-file-pdf"></i>
+                                    Exportar PDF
+                                </button>
+                                <button type="button" id="rechazarBtn" class="action-button bg-red-600 text-white hover:bg-red-700">
+                                    <i class="fas fa-times-circle"></i>
+                                    Rechazar
+                                </button>
+                                <button type="button" id="aprobarBtn" class="action-button bg-green-600 text-white hover:bg-green-700">
+                                    <i class="fas fa-check-circle"></i>
+                                    Aprobar
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Contenedor para alertas -->
+    <div id="alert-container" class="fixed top-4 right-4 z-50 space-y-4"></div>
+
     <script src="js/auth.js"></script>
     <script src="js/aprobaciones.js"></script>
+    <script src="js/notificaciones.js"></script>
     <script>
         // Verificar autenticación y permisos
         document.addEventListener('DOMContentLoaded', function() {

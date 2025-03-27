@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session, g
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session, g, flash, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime
@@ -6,7 +6,6 @@ import os
 from dotenv import load_dotenv
 import logging
 from functools import wraps
-import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -35,7 +34,6 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', '88924606')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'supersecretkey')
-app.config['DATABASE'] = 'database.db'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'pdf', 'png', 'jpg', 'jpeg', 'xlsx', 'xls', 'doc', 'docx'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
@@ -98,6 +96,50 @@ class Aprobacion(db.Model):
     accion = db.Column(db.String(20), nullable=False)  # 'aprobado' o 'rechazado'
     comentarios = db.Column(db.Text)
 
+class Notificacion(db.Model):
+    __tablename__ = 'notificaciones'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario = db.Column(db.String(100), nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # 'aprobacion', 'rechazo'
+    mensaje = db.Column(db.Text, nullable=False)
+    documento_id = db.Column(db.Integer, db.ForeignKey('documentos.id', ondelete='CASCADE'), nullable=False)
+    fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    leida = db.Column(db.Boolean, default=False)
+
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    nombre = db.Column(db.String(100), nullable=False)
+    apellido = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True)
+    role = db.Column(db.String(20), nullable=False, default='user')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Usuario {self.username}>'
+    
+    @property
+    def is_authenticated(self):
+        return True
+    
+    @property
+    def is_active(self):
+        return True
+    
+    @property
+    def is_anonymous(self):
+        return False
+    
+    def get_id(self):
+        return str(self.id)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
 # Middleware de autenticación
 def login_required(f):
     @wraps(f)
@@ -109,19 +151,49 @@ def login_required(f):
 
 # Rutas de autenticación
 @app.route('/login', methods=['POST'])
-def api_login_form():
+def login():
     data = request.get_json()
-    usuario = data.get('usuario')
+    username = data.get('usuario')
     password = data.get('password')
+    selected_role = data.get('role')  # Obtenemos el rol seleccionado
     
-    if usuario == 'admin' and password == 'admin123':
-        session['usuario'] = usuario
-        return jsonify({'mensaje': 'Inicio de sesión exitoso'})
-    return jsonify({'error': 'Credenciales inválidas'}), 401
+    try:
+        # Buscar usuario en la base de datos
+        user = Usuario.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # Verificar si el rol seleccionado coincide con el rol del usuario en la BD
+            if selected_role and selected_role != user.role:
+                print(f"Rol seleccionado ({selected_role}) no coincide con rol del usuario ({user.role})")
+                return jsonify({'error': 'El tipo de usuario seleccionado no corresponde con su rol'}), 401
+                
+            # Login exitoso
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_type'] = user.role
+            session['usuario'] = user.username  # Agregamos esto para compatibilidad
+            
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'role': user.role,
+                    'nombre': user.nombre,
+                    'apellido': user.apellido
+                }
+            })
+        else:
+            return jsonify({'error': 'Credenciales inválidas'}), 401
+            
+    except Exception as e:
+        print(f"Error en login: {str(e)}")
+        return jsonify({'error': 'Error al iniciar sesión'}), 500
 
 @app.route('/logout', methods=['POST'])
 def logout():
     session.pop('usuario', None)
+    session.pop('user_type', None)
     return jsonify({'mensaje': 'Sesión cerrada exitosamente'})
 
 # Ruta protegida de prueba
@@ -459,10 +531,41 @@ def close_connection(exception):
 
 def init_db():
     with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
+        try:
+            # Crear todas las tablas
+            db.create_all()
+            print("Tablas creadas exitosamente")
+            
+            # Crear usuarios para cada rol si no existen
+            roles = ['admin', 'operacion', 'compras', 'aprobador']
+            
+            for role in roles:
+                usuario = Usuario.query.filter_by(username=role).first()
+                if not usuario:
+                    # Crear usuario con este rol
+                    nuevo_usuario = Usuario(
+                        username=role,
+                        password=generate_password_hash('123456'),
+                        nombre=role.capitalize(),
+                        apellido='Sistema',
+                        email=f'{role}@sistema.com',
+                        role=role
+                    )
+                    db.session.add(nuevo_usuario)
+                    print(f"Usuario {role} creado exitosamente")
+                else:
+                    # Actualizar el rol si el usuario ya existe pero tiene otro rol
+                    if usuario.role != role:
+                        usuario.role = role
+                        print(f"Rol de usuario {role} actualizado")
+                    else:
+                        print(f"El usuario {role} ya existe con el rol correcto")
+            
+            db.session.commit()
+                
+        except Exception as e:
+            print(f"Error al inicializar la base de datos: {str(e)}")
+            db.session.rollback()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -493,68 +596,177 @@ def serve_static_file(filename):
 # Autenticación
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    if not request.json or not 'username' in request.json or not 'password' in request.json:
-        return jsonify({'error': 'Datos incompletos'}), 400
-    
-    username = request.json['username']
-    password = request.json['password']
-    
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute("SELECT * FROM usuarios WHERE username = ?", (username,))
-    user = cursor.fetchone()
-    
-    if user and check_password_hash(user['password'], password):
-        return jsonify({
-            'id': user['id'],
-            'username': user['username'],
-            'nombre': user['nombre'],
-            'apellido': user['apellido'],
-            'email': user['email'],
-            'role': user['role']
-        }), 200
-    else:
-        return jsonify({'error': 'Credenciales inválidas'}), 401
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'error': 'Usuario y contraseña son requeridos'}), 400
+        
+        # Buscar usuario en la base de datos
+        user = Usuario.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            # Login exitoso
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_type'] = user.role
+            
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'role': user.role,
+                    'nombre': user.nombre,
+                    'apellido': user.apellido
+                }
+            })
+        else:
+            return jsonify({'error': 'Usuario o contraseña incorrectos'}), 401
+            
+    except Exception as e:
+        print(f"Error en api_login: {str(e)}")
+        return jsonify({'error': 'Error al iniciar sesión'}), 500
 
 # Registro de usuario
 @app.route('/api/usuarios', methods=['POST'])
-def registrar_usuario():
-    if not request.json:
-        return jsonify({'error': 'Datos incompletos'}), 400
+@login_required
+def create_usuario():
+    if session.get('user_type') != 'admin':
+        return jsonify({'error': 'No tienes permisos para crear usuarios'}), 403
     
-    required_fields = ['username', 'password', 'nombre', 'apellido', 'role']
-    for field in required_fields:
-        if field not in request.json:
-            return jsonify({'error': f'Falta el campo {field}'}), 400
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    nombre = data.get('nombre')
+    apellido = data.get('apellido')
+    email = data.get('email')
+    role = data.get('role')
     
-    db = get_db()
-    cursor = db.cursor()
+    if not all([username, password, nombre, apellido, role]):
+        return jsonify({'error': 'Faltan campos requeridos'}), 400
     
-    # Verificar si el username ya existe
-    cursor.execute("SELECT id FROM usuarios WHERE username = ?", (request.json['username'],))
-    if cursor.fetchone():
-        return jsonify({'error': 'El nombre de usuario ya existe'}), 409
+    if Usuario.query.filter_by(username=username).first():
+        return jsonify({'error': 'El nombre de usuario ya existe'}), 400
     
-    # Insertar nuevo usuario
-    hashed_password = generate_password_hash(request.json['password'])
+    nuevo_usuario = Usuario(
+        username=username,
+        password=generate_password_hash(password),
+        nombre=nombre,
+        apellido=apellido,
+        email=email,
+        role=role
+    )
     
+    db.session.add(nuevo_usuario)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Usuario creado exitosamente',
+        'user': {
+            'id': nuevo_usuario.id,
+            'username': nuevo_usuario.username,
+            'nombre': nuevo_usuario.nombre,
+            'apellido': nuevo_usuario.apellido,
+            'email': nuevo_usuario.email,
+            'role': nuevo_usuario.role
+        }
+    }), 201
+
+@app.route('/api/usuarios', methods=['GET'])
+@login_required
+def obtener_usuarios():
     try:
-        cursor.execute(
-            "INSERT INTO usuarios (username, password, nombre, apellido, email, role) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                request.json['username'],
-                hashed_password,
-                request.json['nombre'],
-                request.json['apellido'],
-                request.json.get('email', ''),
-                request.json['role']
-            )
-        )
-        db.commit()
+        print(f"Session data en obtener_usuarios: {session}")
         
-        return jsonify({'message': 'Usuario registrado correctamente'}), 201
+        # Verificar que el usuario esté autenticado
+        if not session.get('user_type'):
+            print("No hay user_type en la sesión")
+            return jsonify({'error': 'Acceso no autorizado'}), 401
+            
+        # Verificar que el usuario sea admin
+        if session.get('user_type') != 'admin':
+            print(f"Usuario no es admin. Tipo: {session.get('user_type')}")
+            return jsonify({'error': 'No tiene permisos para ver la lista de usuarios'}), 403
+            
+        # Obtener todos los usuarios
+        usuarios = Usuario.query.all()
+        
+        # Convertir a lista de diccionarios
+        usuarios_list = [{
+            'id': usuario.id,
+            'username': usuario.username,
+            'nombre': usuario.nombre,
+            'apellido': usuario.apellido,
+            'email': usuario.email,
+            'role': usuario.role
+        } for usuario in usuarios]
+        
+        return jsonify(usuarios_list), 200
+        
     except Exception as e:
-        db.rollback()
+        print(f"Error al obtener usuarios: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/usuarios/<int:user_id>', methods=['DELETE'])
+@login_required
+def delete_usuario(user_id):
+    if session.get('user_type') != 'admin':
+        return jsonify({'error': 'No tienes permisos para eliminar usuarios'}), 403
+    
+    usuario = Usuario.query.get_or_404(user_id)
+    if usuario.username == 'admin':
+        return jsonify({'error': 'No se puede eliminar al usuario administrador'}), 400
+    
+    db.session.delete(usuario)
+    db.session.commit()
+    return jsonify({'message': 'Usuario eliminado exitosamente'})
+
+@app.route('/api/usuarios/<int:user_id>', methods=['PUT'])
+@login_required
+def actualizar_usuario(user_id):
+    try:
+        # Verificar que el usuario esté autenticado
+        if not session.get('user_type'):
+            return jsonify({'error': 'Acceso no autorizado'}), 401
+            
+        # Verificar que el usuario sea admin
+        if session.get('user_type') != 'admin':
+            return jsonify({'error': 'No tiene permisos para actualizar usuarios'}), 403
+            
+        # Obtener datos del usuario
+        data = request.get_json()
+        
+        # Buscar el usuario
+        usuario = Usuario.query.get(user_id)
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+            
+        # Actualizar campos
+        if 'nombre' in data:
+            usuario.nombre = data['nombre']
+        if 'apellido' in data:
+            usuario.apellido = data['apellido']
+        if 'email' in data:
+            usuario.email = data['email']
+        if 'role' in data:
+            usuario.role = data['role']
+        if 'password' in data and data['password']:
+            usuario.set_password(data['password'])
+            
+        # Guardar cambios
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Usuario actualizado correctamente'
+        }), 200
+        
+    except Exception as e:
+        print(f"Error al actualizar usuario: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 # Solicitudes de pedido
@@ -690,6 +902,7 @@ def obtener_orden(numero):
     
     documentos = [dict(row) for row in cursor.fetchall()]
     orden_dict['documentos'] = documentos
+    
     
     return jsonify(orden_dict), 200
 
@@ -946,77 +1159,235 @@ def actualizar_documento(doc_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/documentos/<int:doc_id>/aprobar', methods=['POST'])
-def aprobar_documento(doc_id):
+@app.route('/api/documentos/<int:id>/aprobar', methods=['POST'])
+def aprobar_documento(id):
     try:
-        documento = Documento.query.get_or_404(doc_id)
-        data = request.get_json()
+        # Verificar que el usuario esté autenticado
+        if not session.get('user_type'):
+            return jsonify({'error': 'Acceso no autorizado'}), 401
+            
+        # Verificar que el usuario sea aprobador o admin
+        user_type = session.get('user_type')
+        if user_type not in ['aprobador', 'admin']:
+            return jsonify({'error': 'No tiene permisos para aprobar documentos'}), 403
+            
+        # Obtener datos del documento
+        documento = Documento.query.get(id)
+        if not documento:
+            return jsonify({'error': 'Documento no encontrado'}), 404
+            
+        # Verificar que el documento esté pendiente o emitido
+        if documento.estado != 'pendiente' and documento.estado != 'emitida':
+            return jsonify({'error': f'El documento no puede ser aprobado. Estado actual: {documento.estado}'}), 400
+            
+        # Obtener comentarios (opcional)
+        data = request.json
+        comentarios = data.get('comentarios', '')
         
+        # Actualizar estado del documento
         documento.estado = 'aprobado'
         
         # Crear registro de aprobación
         aprobacion = Aprobacion(
-            documento_id=doc_id,
-            usuario=data.get('usuario', 'admin'),
+            documento_id=id,
+            usuario=session.get('username', 'Sistema'),
             fecha=datetime.now(),
             accion='aprobado',
-            comentarios=data.get('comentarios', '')
+            comentarios=comentarios
         )
         
+        # Guardar cambios en la base de datos
         db.session.add(aprobacion)
         db.session.commit()
         
-        return jsonify({
-            'message': 'Documento aprobado exitosamente',
-            'id': documento.id
-        })
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error al aprobar documento: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/documentos/<int:doc_id>/rechazar', methods=['POST'])
-def rechazar_documento(doc_id):
-    try:
-        documento = Documento.query.get_or_404(doc_id)
-        data = request.get_json()
+        # Crear notificación para el creador del documento
+        if documento.creador_id and documento.creador_id != session.get('user_id'):
+            notificacion = Notificacion(
+                usuario_id=documento.creador_id,
+                tipo='aprobacion',
+                mensaje=f'Tu {documento.tipo.upper()} {documento.numero} ha sido aprobada',
+                fecha=datetime.now(),
+                documento_id=documento.id,
+                leida=False
+            )
+            db.session.add(notificacion)
+            db.session.commit()
         
+        return jsonify({'success': True, 'mensaje': 'Documento aprobado correctamente'}), 200
+        
+    except Exception as e:
+        print(f"Error al aprobar documento: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+        
+@app.route('/api/documentos/<int:id>/rechazar', methods=['POST'])
+def rechazar_documento(id):
+    try:
+        # Verificar que el usuario esté autenticado
+        if not session.get('user_type'):
+            return jsonify({'error': 'Acceso no autorizado'}), 401
+            
+        # Verificar que el usuario sea aprobador o admin
+        user_type = session.get('user_type')
+        if user_type not in ['aprobador', 'admin']:
+            return jsonify({'error': 'No tiene permisos para rechazar documentos'}), 403
+            
+        # Obtener datos del documento
+        documento = Documento.query.get(id)
+        if not documento:
+            return jsonify({'error': 'Documento no encontrado'}), 404
+            
+        # Verificar que el documento esté pendiente o emitido
+        if documento.estado != 'pendiente' and documento.estado != 'emitida':
+            return jsonify({'error': f'El documento no puede ser rechazado. Estado actual: {documento.estado}'}), 400
+            
+        # Obtener comentarios (requerido para rechazar)
+        data = request.json
+        comentarios = data.get('comentarios', '').strip()
+        
+        if not comentarios:
+            return jsonify({'error': 'Debe proporcionar comentarios al rechazar un documento'}), 400
+            
+        # Actualizar estado del documento
         documento.estado = 'rechazado'
         
-        # Crear registro de rechazo
+        # Crear registro de aprobación
         aprobacion = Aprobacion(
-            documento_id=doc_id,
-            usuario=data.get('usuario', 'admin'),
+            documento_id=id,
+            usuario=session.get('username', 'Sistema'),
             fecha=datetime.now(),
             accion='rechazado',
-            comentarios=data.get('comentarios', '')
+            comentarios=comentarios
         )
         
+        # Guardar cambios en la base de datos
         db.session.add(aprobacion)
         db.session.commit()
         
-        return jsonify({
-            'message': 'Documento rechazado exitosamente',
-            'id': documento.id
-        })
+        # Crear notificación para el creador del documento
+        if documento.creador_id and documento.creador_id != session.get('user_id'):
+            notificacion = Notificacion(
+                usuario_id=documento.creador_id,
+                tipo='rechazo',
+                mensaje=f'Tu {documento.tipo.upper()} {documento.numero} ha sido rechazada',
+                fecha=datetime.now(),
+                documento_id=documento.id,
+                leida=False
+            )
+            db.session.add(notificacion)
+            db.session.commit()
+        
+        return jsonify({'success': True, 'mensaje': 'Documento rechazado correctamente'}), 200
+        
     except Exception as e:
-        db.session.rollback()
         print(f"Error al rechazar documento: {str(e)}")
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/aprobaciones.html')
-def aprobaciones():
-    return send_from_directory('static', 'aprobaciones.html')
+@app.route('/api/notificaciones', methods=['GET'])
+@login_required
+def obtener_notificaciones():
+    try:
+        notificaciones = Notificacion.query.filter_by(
+            usuario=session['usuario']
+        ).order_by(Notificacion.fecha.desc()).all()
+        
+        return jsonify([{
+            'id': n.id,
+            'tipo': n.tipo,
+            'mensaje': n.mensaje,
+            'fecha': n.fecha.strftime('%Y-%m-%d %H:%M:%S'),
+            'leida': n.leida,
+            'documento_id': n.documento_id
+        } for n in notificaciones])
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/test-api.html')
-def test_api():
-    return send_from_directory('static', 'test-api.html')
+@app.route('/api/notificaciones/<int:notif_id>/marcar-leida', methods=['POST'])
+@login_required
+def marcar_notificacion_leida(notif_id):
+    try:
+        notificacion = Notificacion.query.get_or_404(notif_id)
+        
+        # Verificar que la notificación pertenezca al usuario
+        if notificacion.usuario != session['usuario']:
+            return jsonify({'error': 'No autorizado'}), 403
+            
+        notificacion.leida = True
+        db.session.commit()
+        
+        return jsonify({'message': 'Notificación marcada como leída'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/crear-usuario-inicial', methods=['POST'])
+def crear_usuario_inicial():
+    try:
+        # Verificar si ya existe un usuario admin
+        admin_existente = Usuario.query.filter_by(role='admin').first()
+        if admin_existente:
+            return jsonify({'error': 'Ya existe un usuario administrador'}), 400
+            
+        # Crear usuario admin
+        admin = Usuario(
+            username='admin',
+            password=generate_password_hash('admin123'),
+            nombre='Administrador',
+            apellido='Sistema',
+            email='admin@sistema.com',
+            role='admin'
+        )
+        
+        db.session.add(admin)
+        db.session.commit()
+        
+        return jsonify({
+            'mensaje': 'Usuario administrador creado exitosamente',
+            'usuario': {
+                'username': admin.username,
+                'role': admin.role
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al crear usuario inicial: {str(e)}")
+        return jsonify({'error': 'Error al crear el usuario administrador'}), 500
 
 if __name__ == '__main__':
-    with app.app_context():
-        try:
-            db.create_all()
-            logger.info('Tablas creadas exitosamente')
-        except Exception as e:
-            logger.error(f'Error al crear las tablas: {str(e)}')
-        app.run(debug=True)
+    import atexit
+    import signal
+    import sys
+
+    def cleanup():
+        """Función para limpiar recursos antes de cerrar"""
+        with app.app_context():
+            try:
+                # Cerrar conexiones de base de datos
+                db.session.remove()
+                db.session.close()
+                logger.info('Conexiones de base de datos cerradas')
+            except Exception as e:
+                logger.error(f'Error durante la limpieza: {str(e)}')
+
+    def signal_handler(signum, frame):
+        """Manejador de señales para cerrar la aplicación de manera controlada"""
+        logger.info('Señal de cierre recibida. Iniciando limpieza...')
+        cleanup()
+        sys.exit(0)
+
+    # Registrar manejadores de señales
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Registrar función de limpieza
+    atexit.register(cleanup)
+
+    # Inicializar la base de datos
+    init_db()
+    
+    # Iniciar la aplicación
+    app.run(debug=True)
